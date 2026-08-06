@@ -19,6 +19,10 @@ frontend/.env
 .idea/
 .vscode/
 
+# Claude Code local-only files (settings.json is meant to be shared/committed)
+.claude/settings.local.json
+.claude/.cc-writes/
+
 # Local dev server logs
 backend/.run/
 frontend/.run/
