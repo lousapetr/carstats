@@ -68,6 +68,21 @@ def create_reminder(db: Session, data: ReminderCreate) -> ReminderRead:
     return _to_read(reminder, profile.current_mileage_km, date.today())
 
 
+def update_reminder(db: Session, reminder: Reminder, data: ReminderCreate) -> ReminderRead:
+    reminder.title = data.title
+    reminder.notes = data.notes
+    reminder.due_date = data.due_date
+    reminder.due_mileage_km = data.due_mileage_km
+    reminder.recurrence_days = data.recurrence_days
+    reminder.recurrence_km = data.recurrence_km
+
+    db.add(reminder)
+    db.commit()
+    db.refresh(reminder)
+    profile = get_or_create_profile(db)
+    return _to_read(reminder, profile.current_mileage_km, date.today())
+
+
 def complete_reminder(db: Session, reminder: Reminder) -> ReminderRead:
     """Mark done. If the reminder recurs, roll it forward instead of hiding it."""
     if reminder.recurrence_days is not None and reminder.due_date is not None:

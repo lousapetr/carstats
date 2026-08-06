@@ -19,7 +19,23 @@ def list_fuel_entries(user: CurrentUser, db: Session = Depends(get_db)) -> list[
 def create_fuel_entry(
     data: FuelEntryCreate, user: CurrentUser, db: Session = Depends(get_db)
 ) -> FuelEntryRead:
-    return service.create_entry(db, data)
+    try:
+        return service.create_entry(db, data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.put("/{entry_id}", response_model=FuelEntryRead)
+def update_fuel_entry(
+    entry_id: int, data: FuelEntryCreate, user: CurrentUser, db: Session = Depends(get_db)
+) -> FuelEntryRead:
+    entry = db.get(FuelEntry, entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Fuel entry not found")
+    try:
+        return service.update_entry(db, entry, data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)

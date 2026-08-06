@@ -8,7 +8,7 @@ def test_reminder_status_ok_when_far_from_due(client):
 def test_reminder_status_due_soon_within_threshold(client):
     client.post(
         "/api/fuel-entries",
-        json={"date": "2026-08-01", "mileage_km": 10000, "liters": 40, "price_total": 60},
+        json={"date": "2026-08-01", "mileage_km": 10000, "liters": 40, "price_per_liter": 1.5},
     )
     reminder = client.post(
         "/api/reminders", json={"title": "Oil change", "due_mileage_km": 10400}
@@ -19,7 +19,7 @@ def test_reminder_status_due_soon_within_threshold(client):
 def test_reminder_status_overdue_by_mileage(client):
     client.post(
         "/api/fuel-entries",
-        json={"date": "2026-08-01", "mileage_km": 10000, "liters": 40, "price_total": 60},
+        json={"date": "2026-08-01", "mileage_km": 10000, "liters": 40, "price_per_liter": 1.5},
     )
     reminder = client.post(
         "/api/reminders", json={"title": "Oil change", "due_mileage_km": 9000}
@@ -44,7 +44,7 @@ def test_completing_non_recurring_reminder_hides_it(client):
 def test_completing_recurring_reminder_rolls_forward(client):
     client.post(
         "/api/fuel-entries",
-        json={"date": "2026-08-01", "mileage_km": 10000, "liters": 40, "price_total": 60},
+        json={"date": "2026-08-01", "mileage_km": 10000, "liters": 40, "price_per_liter": 1.5},
     )
     reminder = client.post(
         "/api/reminders",
@@ -54,6 +54,28 @@ def test_completing_recurring_reminder_rolls_forward(client):
     assert completed["completed_at"] is None
     assert completed["due_mileage_km"] == 20600
     assert completed["status"] == "ok"
+
+
+def test_update_reminder(client):
+    reminder = client.post(
+        "/api/reminders", json={"title": "Oil change", "due_mileage_km": 50000}
+    ).json()
+
+    updated = client.put(
+        f"/api/reminders/{reminder['id']}",
+        json={"title": "Oil change (renamed)", "due_mileage_km": 60000},
+    )
+    assert updated.status_code == 200
+    body = updated.json()
+    assert body["title"] == "Oil change (renamed)"
+    assert body["due_mileage_km"] == 60000
+
+
+def test_update_missing_reminder_404s(client):
+    response = client.put(
+        "/api/reminders/999", json={"title": "Oil change", "due_mileage_km": 50000}
+    )
+    assert response.status_code == 404
 
 
 def test_delete_reminder(client):

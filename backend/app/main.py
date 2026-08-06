@@ -9,7 +9,9 @@ from app.attachments.router import router as attachments_router
 from app.auth.router import router as auth_router
 from app.car.router import router as car_router
 from app.core.config import settings
+from app.currency.router import router as currency_router
 from app.dashboard.router import router as dashboard_router
+from app.export.router import router as export_router
 from app.fuel.router import router as fuel_router
 from app.maintenance.router import router as maintenance_router
 from app.reminders.router import router as reminders_router
@@ -19,11 +21,13 @@ app.add_middleware(SessionMiddleware, secret_key=settings.session_secret, same_s
 
 app.include_router(auth_router)
 app.include_router(car_router, prefix="/api")
+app.include_router(currency_router, prefix="/api")
 app.include_router(fuel_router, prefix="/api")
 app.include_router(maintenance_router, prefix="/api")
 app.include_router(attachments_router, prefix="/api")
 app.include_router(reminders_router, prefix="/api")
 app.include_router(dashboard_router, prefix="/api")
+app.include_router(export_router, prefix="/api")
 
 _dist_dir = settings.frontend_dist_dir
 if os.path.isdir(_dist_dir):

@@ -1,13 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { remindersApi } from '../../api/reminders'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { StatusBadge } from '../../components/ui/StatusBadge'
-import type { ReminderInput } from '../../types'
+import type { Reminder, ReminderInput } from '../../types'
 import { ReminderForm } from './ReminderForm'
+
+function toFormValues(reminder: Reminder) {
+  return {
+    title: reminder.title,
+    due_date: reminder.due_date ?? undefined,
+    due_mileage_km: reminder.due_mileage_km ?? undefined,
+    recurrence_days: reminder.recurrence_days ?? undefined,
+    recurrence_km: reminder.recurrence_km ?? undefined,
+    notes: reminder.notes ?? undefined,
+  }
+}
 
 export function RemindersPage() {
   const queryClient = useQueryClient()
+  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null)
 
   const { data: reminders, isLoading } = useQuery({
     queryKey: ['reminders'],
@@ -24,6 +37,15 @@ export function RemindersPage() {
     onSuccess: invalidate,
   })
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: ReminderInput }) =>
+      remindersApi.update(id, data),
+    onSuccess: () => {
+      invalidate()
+      setEditingReminder(null)
+    },
+  })
+
   const completeMutation = useMutation({
     mutationFn: (id: number) => remindersApi.complete(id),
     onSuccess: invalidate,
@@ -36,16 +58,26 @@ export function RemindersPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Reminders</h1>
+      <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Připomínky</h1>
 
       <Card>
         <ReminderForm
-          onSubmit={(values) => createMutation.mutate(values)}
-          isSubmitting={createMutation.isPending}
+          key={editingReminder?.id ?? 'new'}
+          defaultValues={editingReminder ? toFormValues(editingReminder) : undefined}
+          submitLabel={editingReminder ? 'Uložit změny' : undefined}
+          onCancel={editingReminder ? () => setEditingReminder(null) : undefined}
+          onSubmit={(values) => {
+            if (editingReminder) {
+              updateMutation.mutate({ id: editingReminder.id, data: values })
+            } else {
+              createMutation.mutate(values)
+            }
+          }}
+          isSubmitting={createMutation.isPending || updateMutation.isPending}
         />
       </Card>
 
-      {isLoading && <p className="text-sm text-gray-500">Loading…</p>}
+      {isLoading && <p className="text-sm text-gray-500">Načítám…</p>}
 
       <div className="flex flex-col gap-2">
         {reminders?.map((reminder) => (
@@ -58,24 +90,27 @@ export function RemindersPage() {
                 <StatusBadge status={reminder.status} />
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                {reminder.due_date && `Due ${reminder.due_date}`}
+                {reminder.due_date && `Termín ${reminder.due_date}`}
                 {reminder.due_date && reminder.due_mileage_km !== null && ' · '}
                 {reminder.due_mileage_km !== null &&
-                  `Due at ${reminder.due_mileage_km.toLocaleString()} km`}
+                  `Při ${reminder.due_mileage_km.toLocaleString()} km`}
               </div>
             </div>
             <div className="flex shrink-0 gap-2">
+              <Button variant="secondary" onClick={() => setEditingReminder(reminder)}>
+                Upravit
+              </Button>
               <Button variant="secondary" onClick={() => completeMutation.mutate(reminder.id)}>
-                Done
+                Hotovo
               </Button>
               <Button variant="danger" onClick={() => deleteMutation.mutate(reminder.id)}>
-                Delete
+                Smazat
               </Button>
             </div>
           </Card>
         ))}
         {reminders?.length === 0 && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">No active reminders.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Žádné aktivní připomínky.</p>
         )}
       </div>
     </div>

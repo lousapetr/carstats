@@ -2,6 +2,7 @@ from pydantic import BaseModel
 
 
 class CarProfileRead(BaseModel):
+    name: str
     make: str
     model: str
     year: int | None
@@ -9,6 +10,7 @@ class CarProfileRead(BaseModel):
 
 
 class CarProfileUpdate(BaseModel):
+    name: str = ""
     make: str
     model: str
     year: int | None = None

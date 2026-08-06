@@ -29,6 +29,14 @@ def _get_or_404(db: Session, reminder_id: int) -> Reminder:
     return reminder
 
 
+@router.put("/{reminder_id}", response_model=ReminderRead)
+def update_reminder(
+    reminder_id: int, data: ReminderCreate, user: CurrentUser, db: Session = Depends(get_db)
+) -> ReminderRead:
+    reminder = _get_or_404(db, reminder_id)
+    return service.update_reminder(db, reminder, data)
+
+
 @router.post("/{reminder_id}/complete", response_model=ReminderRead)
 def complete_reminder(
     reminder_id: int, user: CurrentUser, db: Session = Depends(get_db)

@@ -8,8 +8,8 @@ const STATUS_CLASSES: Record<ReminderStatus, string> = {
 
 const STATUS_LABELS: Record<ReminderStatus, string> = {
   ok: 'OK',
-  due_soon: 'Due soon',
-  overdue: 'Overdue',
+  due_soon: 'Blíží se',
+  overdue: 'Po termínu',
 }
 
 export function StatusBadge({ status }: { status: ReminderStatus }) {

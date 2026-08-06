@@ -48,7 +48,7 @@ export function AttachmentUploader({
           <button
             onClick={() => deleteMutation.mutate(attachment.id)}
             className="text-gray-400 hover:text-red-600"
-            aria-label={`Remove ${attachment.filename}`}
+            aria-label={`Odebrat ${attachment.filename}`}
           >
             ×
           </button>
@@ -68,7 +68,7 @@ export function AttachmentUploader({
         onClick={() => fileInputRef.current?.click()}
         disabled={uploadMutation.isPending}
       >
-        {uploadMutation.isPending ? 'Uploading…' : '+ Add invoice/photo'}
+        {uploadMutation.isPending ? 'Nahrávám…' : '+ Přidat fakturu/fotku'}
       </Button>
     </div>
   )

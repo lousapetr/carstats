@@ -3,6 +3,8 @@ from enum import StrEnum
 
 from sqlmodel import Field, SQLModel
 
+from app.currency.models import Currency
+
 
 class ServiceType(StrEnum):
     oil_change = "oil_change"
@@ -17,6 +19,8 @@ class ServiceEntry(SQLModel, table=True):
     mileage_km: float
     type: ServiceType
     description: str | None = None
-    cost: float
+    cost: float  # in the original currency
+    currency: Currency = Currency.CZK
+    exchange_rate: float = 1.0  # rate_to_czk snapshot at entry time
     notes: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

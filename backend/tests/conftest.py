@@ -11,6 +11,7 @@ from app.attachments import models as _attachments_models  # noqa: F401
 from app.car import models as _car_models  # noqa: F401
 from app.core.database import get_db
 from app.core.security import get_current_user_email
+from app.currency import models as _currency_models  # noqa: F401
 from app.fuel import models as _fuel_models  # noqa: F401
 from app.maintenance import models as _maintenance_models  # noqa: F401
 from app.reminders import models as _reminders_models  # noqa: F401

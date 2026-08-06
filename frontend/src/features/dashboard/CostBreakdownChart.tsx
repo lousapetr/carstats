@@ -2,11 +2,11 @@ import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis
 import type { CostBreakdown } from '../../types'
 
 const CATEGORY_COLORS: Record<string, { light: string; dark: string; label: string }> = {
-  fuel: { light: '#2a78d6', dark: '#3987e5', label: 'Fuel' },
-  oil_change: { light: '#eb6834', dark: '#d95926', label: 'Oil change' },
-  tires: { light: '#1baf7a', dark: '#199e70', label: 'Tires' },
-  engine_service: { light: '#eda100', dark: '#c98500', label: 'Engine service' },
-  other: { light: '#e87ba4', dark: '#d55181', label: 'Other' },
+  fuel: { light: '#2a78d6', dark: '#3987e5', label: 'Palivo' },
+  oil_change: { light: '#eb6834', dark: '#d95926', label: 'Výměna oleje' },
+  tires: { light: '#1baf7a', dark: '#199e70', label: 'Pneumatiky' },
+  engine_service: { light: '#eda100', dark: '#c98500', label: 'Servis motoru' },
+  other: { light: '#e87ba4', dark: '#d55181', label: 'Jiné' },
 }
 
 function useIsDark() {
@@ -23,7 +23,7 @@ export function CostBreakdownChart({ data }: { data: CostBreakdown }) {
   ].filter((row) => row.value > 0)
 
   if (rows.length === 0) {
-    return <p className="text-sm text-gray-500 dark:text-gray-400">No costs logged yet.</p>
+    return <p className="text-sm text-gray-500 dark:text-gray-400">Zatím žádné náklady.</p>
   }
 
   const chartData = rows.map((row) => ({

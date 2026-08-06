@@ -21,7 +21,23 @@ def list_service_entries(
 def create_service_entry(
     data: ServiceEntryCreate, user: CurrentUser, db: Session = Depends(get_db)
 ) -> ServiceEntryRead:
-    return service.create_entry(db, data)
+    try:
+        return service.create_entry(db, data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.put("/{entry_id}", response_model=ServiceEntryRead)
+def update_service_entry(
+    entry_id: int, data: ServiceEntryCreate, user: CurrentUser, db: Session = Depends(get_db)
+) -> ServiceEntryRead:
+    entry = db.get(ServiceEntry, entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Service entry not found")
+    try:
+        return service.update_entry(db, entry, data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)

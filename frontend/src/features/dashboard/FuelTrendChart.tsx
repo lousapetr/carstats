@@ -46,7 +46,7 @@ export function FuelPriceTrendChart({ data }: { data: FuelTrendPoint[] }) {
           width={36}
         />
         <Tooltip
-          formatter={(value) => [Number(value).toFixed(2), 'Total price']}
+          formatter={(value) => [Number(value).toFixed(2), 'Cena celkem (Kč)']}
           contentStyle={{ fontSize: 12 }}
         />
         <Line
@@ -88,7 +88,7 @@ export function ConsumptionTrendChart({ data }: { data: FuelTrendPoint[] }) {
           width={36}
         />
         <Tooltip
-          formatter={(value) => [Number(value).toFixed(1), 'L/100km']}
+          formatter={(value) => [Number(value).toFixed(1), 'l/100 km']}
           contentStyle={{ fontSize: 12 }}
         />
         <Line

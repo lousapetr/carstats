@@ -3,10 +3,11 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard', icon: '📊' },
-  { to: '/fuel', label: 'Fuel', icon: '⛽' },
-  { to: '/maintenance', label: 'Service', icon: '🔧' },
-  { to: '/reminders', label: 'Reminders', icon: '🔔' },
+  { to: '/', label: 'Přehled', icon: '📊' },
+  { to: '/fuel', label: 'Tankování', icon: '⛽' },
+  { to: '/maintenance', label: 'Servis', icon: '🔧' },
+  { to: '/reminders', label: 'Připomínky', icon: '🔔' },
+  { to: '/settings', label: 'Nastavení', icon: '⚙️' },
 ]
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -22,7 +23,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             onClick={logout}
             className="underline underline-offset-2 hover:text-gray-900 dark:hover:text-gray-100"
           >
-            Sign out
+            Odhlásit se
           </button>
         </div>
       </header>

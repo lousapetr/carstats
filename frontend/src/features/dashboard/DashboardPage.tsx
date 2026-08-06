@@ -3,6 +3,7 @@ import { dashboardApi } from '../../api/dashboard'
 import { Card } from '../../components/ui/Card'
 import { StatTile } from '../../components/ui/StatTile'
 import { StatusBadge } from '../../components/ui/StatusBadge'
+import { formatCzk } from '../../lib/currencies'
 import { CostBreakdownChart } from './CostBreakdownChart'
 import { ConsumptionTrendChart, FuelPriceTrendChart } from './FuelTrendChart'
 
@@ -23,18 +24,19 @@ export function DashboardPage() {
   })
 
   if (summaryLoading || !summary) {
-    return <p className="text-sm text-gray-500">Loading…</p>
+    return <p className="text-sm text-gray-500">Načítám…</p>
   }
 
-  const carLabel = [summary.car.year, summary.car.make, summary.car.model]
-    .filter(Boolean)
-    .join(' ')
+  const carLabel =
+    summary.car.name || [summary.car.year, summary.car.make, summary.car.model]
+      .filter(Boolean)
+      .join(' ')
 
   return (
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          {carLabel || 'Your car'}
+          {carLabel || 'Vaše auto'}
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {summary.car.current_mileage_km.toLocaleString()} km
@@ -44,7 +46,7 @@ export function DashboardPage() {
       {summary.upcoming_reminders.some((r) => r.status !== 'ok') && (
         <Card className="flex flex-col gap-2">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Needs attention
+            Vyžaduje pozornost
           </h2>
           {summary.upcoming_reminders
             .filter((r) => r.status !== 'ok')
@@ -58,23 +60,29 @@ export function DashboardPage() {
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatTile label="Total cost" value={summary.total_cost.toFixed(0)} />
-        <StatTile label="Fuel cost" value={summary.total_fuel_cost.toFixed(0)} />
-        <StatTile label="Maintenance cost" value={summary.total_maintenance_cost.toFixed(0)} />
+        <StatTile label="Celkové náklady" value={formatCzk(summary.total_cost)} />
+        <StatTile label="Náklady na palivo" value={formatCzk(summary.total_fuel_cost)} />
+        <StatTile label="Náklady na servis" value={formatCzk(summary.total_maintenance_cost)} />
         <StatTile
-          label="Avg consumption"
+          label="Průměrná spotřeba"
           value={
             summary.avg_consumption_l_per_100km !== null
-              ? `${summary.avg_consumption_l_per_100km} L/100km`
+              ? `${summary.avg_consumption_l_per_100km} l/100 km`
               : '—'
           }
+        />
+        <StatTile label="Náklady letos" value={formatCzk(summary.total_cost_this_year)} />
+        <StatTile label="Náklady vloni" value={formatCzk(summary.total_cost_last_year)} />
+        <StatTile
+          label="Náklady na km"
+          value={summary.cost_per_km !== null ? `${summary.cost_per_km} Kč/km` : '—'}
         />
       </div>
 
       {fuelTrend && fuelTrend.length > 0 && (
         <Card>
           <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Fuel price over time
+            Cena paliva v čase
           </h2>
           <FuelPriceTrendChart data={fuelTrend} />
         </Card>
@@ -83,7 +91,7 @@ export function DashboardPage() {
       {fuelTrend && fuelTrend.some((p) => p.consumption_l_per_100km !== null) && (
         <Card>
           <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Consumption over time
+            Spotřeba v čase
           </h2>
           <ConsumptionTrendChart data={fuelTrend} />
         </Card>
@@ -92,7 +100,7 @@ export function DashboardPage() {
       {costBreakdown && (
         <Card>
           <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Cost breakdown
+            Rozložení nákladů
           </h2>
           <CostBreakdownChart data={costBreakdown} />
         </Card>
@@ -100,7 +108,7 @@ export function DashboardPage() {
 
       <Card>
         <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-          Recent activity
+          Poslední aktivita
         </h2>
         <div className="flex flex-col gap-2">
           {summary.recent_activity.map((item, i) => (
@@ -108,11 +116,11 @@ export function DashboardPage() {
               <span className="text-gray-700 dark:text-gray-300">
                 {item.date} · {item.label}
               </span>
-              <span className="text-gray-500 dark:text-gray-400">{item.cost.toFixed(2)}</span>
+              <span className="text-gray-500 dark:text-gray-400">{formatCzk(item.cost)}</span>
             </div>
           ))}
           {summary.recent_activity.length === 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">No activity yet.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Zatím žádná aktivita.</p>
           )}
         </div>
       </Card>

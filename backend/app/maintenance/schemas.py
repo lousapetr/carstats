@@ -2,6 +2,7 @@ from datetime import date
 
 from pydantic import BaseModel
 
+from app.currency.models import Currency
 from app.maintenance.models import ServiceType
 
 
@@ -11,6 +12,7 @@ class ServiceEntryCreate(BaseModel):
     type: ServiceType
     description: str | None = None
     cost: float
+    currency: Currency = Currency.CZK
     notes: str | None = None
 
 
@@ -22,4 +24,5 @@ class AttachmentRead(BaseModel):
 
 class ServiceEntryRead(ServiceEntryCreate):
     id: int
+    cost_czk: float
     attachments: list[AttachmentRead] = []

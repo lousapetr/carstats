@@ -20,6 +20,7 @@ def update_car_profile(
     data: CarProfileUpdate, user: CurrentUser, db: Session = Depends(get_db)
 ) -> CarProfile:
     profile = service.get_or_create_profile(db)
+    profile.name = data.name
     profile.make = data.make
     profile.model = data.model
     profile.year = data.year

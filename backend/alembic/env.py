@@ -9,6 +9,7 @@ from alembic import context
 from app.attachments import models as attachments_models  # noqa: F401
 from app.car import models as car_models  # noqa: F401
 from app.core.config import settings
+from app.currency import models as currency_models  # noqa: F401
 from app.fuel import models as fuel_models  # noqa: F401
 from app.maintenance import models as maintenance_models  # noqa: F401
 from app.reminders import models as reminders_models  # noqa: F401
