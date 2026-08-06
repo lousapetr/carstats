@@ -19,7 +19,7 @@ async def callback(request: Request) -> RedirectResponse:
     userinfo = token.get("userinfo")
     if userinfo is None or not userinfo.get("email"):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="No email returned by Google"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Google nevrátil e-mailovou adresu"
         )
 
     email = userinfo["email"].lower()

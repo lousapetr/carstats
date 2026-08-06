@@ -29,7 +29,7 @@ def get_rate(db: Session, currency: Currency) -> float:
 
 def update_rate(db: Session, currency: Currency, rate_to_czk: float) -> CurrencyRate:
     if currency == Currency.CZK:
-        raise ValueError("CZK rate is fixed at 1.0 and cannot be changed")
+        raise ValueError("Kurz CZK je pevně 1,0 a nelze jej změnit")
     row = _get_or_seed_row(db, currency)
     row.rate_to_czk = rate_to_czk
     row.updated_at = datetime.now(UTC)

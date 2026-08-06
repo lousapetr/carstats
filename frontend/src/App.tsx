@@ -1,15 +1,26 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { ApiError } from './api/client'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { LoginScreen } from './auth/LoginScreen'
+import { ToastHost } from './components/ui/ToastHost'
 import { DashboardPage } from './features/dashboard/DashboardPage'
 import { FuelLogPage } from './features/fuel/FuelLogPage'
 import { MaintenanceLogPage } from './features/maintenance/MaintenanceLogPage'
 import { RemindersPage } from './features/reminders/RemindersPage'
 import { SettingsPage } from './features/settings/SettingsPage'
 import { AppShell } from './layout/AppShell'
+import { emitErrorToast } from './lib/toastBus'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      if (error instanceof ApiError && error.status === 400) {
+        emitErrorToast(error.message)
+      }
+    },
+  }),
+})
 
 function AuthGate() {
   const { email, isLoading } = useAuth()
@@ -44,6 +55,7 @@ function AuthGate() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <ToastHost />
       <AuthProvider>
         <AuthGate />
       </AuthProvider>
