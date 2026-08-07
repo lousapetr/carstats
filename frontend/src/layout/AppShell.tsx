@@ -35,13 +35,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             to={item.to}
             end={item.to === '/'}
             className={({ isActive }) =>
-              `border-b-2 px-4 py-3 text-sm font-medium ${
+              `inline-flex items-center gap-1.5 border-b-2 px-4 py-3 text-sm font-medium ${
                 isActive
                   ? 'border-gray-900 text-gray-900 dark:border-white dark:text-white'
                   : 'border-transparent text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
               }`
             }
           >
+            <span aria-hidden="true">{item.icon}</span>
             {item.label}
           </NavLink>
         ))}

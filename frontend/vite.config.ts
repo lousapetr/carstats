@@ -21,8 +21,10 @@ export default defineConfig({
         display: 'standalone',
         start_url: '/',
         icons: [
+          // Transparent-background icon: "any" only. "maskable" needs a
+          // full-bleed, opaque design or it renders broken on Android's
+          // adaptive home-screen icon system.
           { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
-          { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
         ],
       },
     }),

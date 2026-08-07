@@ -1,3 +1,4 @@
+import mimetypes
 import os
 
 from fastapi import FastAPI
@@ -29,10 +30,24 @@ app.include_router(reminders_router, prefix="/api")
 app.include_router(dashboard_router, prefix="/api")
 app.include_router(export_router, prefix="/api")
 
+mimetypes.add_type("application/manifest+json", ".webmanifest")
+
 _dist_dir = settings.frontend_dist_dir
 if os.path.isdir(_dist_dir):
-    app.mount("/assets", StaticFiles(directory=f"{_dist_dir}/assets"), name="assets")
+    _dist_dir_abs = os.path.abspath(_dist_dir)
+    app.mount("/assets", StaticFiles(directory=f"{_dist_dir_abs}/assets"), name="assets")
 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str) -> FileResponse:
-        return FileResponse(f"{_dist_dir}/index.html")
+        # Serve real top-level build files (favicon, PWA manifest, service
+        # worker) as-is; fall back to index.html for client-side SPA routes.
+        # Path is resolved and re-checked against _dist_dir_abs to prevent
+        # directory traversal via a crafted full_path (e.g. "../../etc/passwd").
+        candidate = os.path.abspath(os.path.join(_dist_dir_abs, full_path))
+        if (
+            full_path
+            and candidate.startswith(_dist_dir_abs + os.sep)
+            and os.path.isfile(candidate)
+        ):
+            return FileResponse(candidate)
+        return FileResponse(f"{_dist_dir_abs}/index.html")
