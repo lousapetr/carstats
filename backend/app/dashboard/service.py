@@ -6,7 +6,7 @@ from app.car.service import get_or_create_profile
 from app.dashboard.schemas import CostBreakdown, DashboardSummary, FuelTrendPoint, TimelineItem
 from app.fuel.models import FuelEntry
 from app.fuel.service import list_entries_with_stats
-from app.maintenance.models import ServiceEntry
+from app.maintenance.models import ServiceEntry, ServiceType
 from app.reminders.service import list_active_reminders
 
 RECENT_ACTIVITY_LIMIT = 10
@@ -25,6 +25,13 @@ def _fuel_cost_czk(entry: FuelEntry) -> float:
 
 def _service_cost_czk(entry: ServiceEntry) -> float:
     return entry.cost * entry.exchange_rate
+
+
+def _service_label(entry: ServiceEntry) -> str:
+    label = SERVICE_TYPE_LABELS_CS.get(entry.type.value, entry.type.value)
+    if entry.type == ServiceType.other and entry.description:
+        return f"{label} - {entry.description}"
+    return label
 
 
 def get_summary(db: Session) -> DashboardSummary:
@@ -72,7 +79,7 @@ def get_summary(db: Session) -> DashboardSummary:
         TimelineItem(
             date=e.date,
             kind="service",
-            label=SERVICE_TYPE_LABELS_CS.get(e.type.value, e.type.value),
+            label=_service_label(e),
             cost=round(_service_cost_czk(e), 2),
         )
         for e in service_entries

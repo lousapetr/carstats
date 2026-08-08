@@ -110,9 +110,14 @@ export function DashboardPage() {
         <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
           Poslední aktivita
         </h2>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col">
           {summary.recent_activity.map((item, i) => (
-            <div key={i} className="flex items-center justify-between text-sm">
+            <div
+              key={i}
+              className={`flex items-center justify-between rounded-md px-2 py-1.5 text-sm ${
+                i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-900' : ''
+              }`}
+            >
               <span className="text-gray-700 dark:text-gray-300">
                 {item.date} · {item.label}
               </span>

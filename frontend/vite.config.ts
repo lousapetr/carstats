@@ -35,4 +35,8 @@ export default defineConfig({
       '/auth': 'http://localhost:8000',
     },
   },
+  build: {
+    // Single-user app served as one bundle; not worth code-splitting.
+    chunkSizeWarningLimit: 2000,
+  },
 })
