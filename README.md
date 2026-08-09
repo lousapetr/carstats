@@ -50,12 +50,35 @@ Cloudflare Tunnel for public HTTPS access without opening any ports.
 
 1. **Create the VM**: Oracle Cloud Console → Compute → Instances → Create
    Instance. Pick an "Always Free" eligible shape (an Ampere A1 or VM.Standard.E2.1.Micro).
-   Use Ubuntu, and make sure a public IP is assigned.
+   Ubuntu or Oracle Linux both work fine, since the app runs entirely inside
+   Docker; make sure a public IP is assigned.
+
+   If you're on E2.1.Micro (1 GB RAM), add swap before installing anything —
+   `dnf`/`apt` dependency resolution across several repos can otherwise choke
+   the machine into unresponsive swap-thrashing:
+   ```bash
+   sudo fallocate -l 2G /swapfile
+   sudo chmod 600 /swapfile
+   sudo mkswap /swapfile
+   sudo swapon /swapfile
+   echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+   ```
 2. **Install Docker** on the VM:
+
+   On Ubuntu:
    ```bash
    curl -fsSL https://get.docker.com | sh
    sudo usermod -aG docker $USER
    ```
+
+   On Oracle Linux (the convenience script above doesn't support it):
+   ```bash
+   sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+   sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+   sudo systemctl enable --now docker
+   sudo usermod -aG docker $USER
+   ```
+
    (log out/in for the group change to apply)
 3. **Clone this repo** onto the VM.
 4. **Create a Google OAuth client**: Google Cloud Console → APIs & Services →
