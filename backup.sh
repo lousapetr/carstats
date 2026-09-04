@@ -18,11 +18,13 @@ trap 'rm -rf "$workdir"; docker compose exec -T app rm -f /app/data/backup.db' E
 # write from the running app can't produce a half-copied, corrupt file.
 docker compose exec -T app python -c "
 import sqlite3
-src = sqlite3.connect('/app/data/carstats.db')
-dst = sqlite3.connect('/app/data/backup.db')
-src.backup(dst)
-src.close()
-dst.close()
+from contextlib import closing
+
+# closing(), not 'with sqlite3.connect(...)' — the connection's own context
+# manager only commits/rolls back on exit, it doesn't close the connection.
+with closing(sqlite3.connect('/app/data/carstats.db')) as src, \
+     closing(sqlite3.connect('/app/data/backup.db')) as dst:
+    src.backup(dst)
 "
 
 docker compose cp app:/app/data/backup.db "$workdir/carstats.db"
