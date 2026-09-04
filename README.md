@@ -103,3 +103,33 @@ After pushing changes, on the VM: `./deploy.sh` — pulls the latest commit,
 rebuilds the image, and restarts the containers. The SQLite database and
 uploaded files live in the `carstats_data` Docker volume and survive
 redeploys.
+
+### Backups
+
+The Docker volume protects data from redeploys, but not from losing the VM
+itself, so `backup.sh` copies the database and attachments off-box to Google
+Drive.
+
+**One-time setup**, on the VM:
+
+1. Install rclone: `curl https://rclone.org/install.sh | sudo bash`
+2. Configure a Google Drive remote named `gdrive`: `rclone config` → `n` (new
+   remote) → name it `gdrive` → storage type `drive`. The VM has no browser,
+   so when it asks to auto-open one, answer `N` and instead run
+   `rclone authorize "drive"` on your own laptop (with rclone installed
+   there too), sign in when the browser opens, then paste the token it
+   prints back into the VM's prompt.
+3. Verify: `rclone lsd gdrive:` should run without error (an empty listing
+   is fine — the folder is created on first backup).
+4. Add a daily cron job: `crontab -e`, then add a line like:
+   ```
+   0 3 * * * /home/opc/carstats/backup.sh >> /home/opc/carstats/backup.log 2>&1
+   ```
+   (adjust the path to wherever you cloned the repo).
+
+Backups land in the `carstats-backups` folder on Drive as
+`carstats-backup-<timestamp>.tar.gz`, containing the SQLite database and the
+`uploads/` directory. Backups older than 30 days are pruned automatically
+(`REMOTE_RETENTION_DAYS` env var to change). Restore by downloading an
+archive, extracting it, and `docker compose cp`-ing `carstats.db` and
+`uploads/` back into the `app` container's `/app/data/`.
