@@ -11,6 +11,14 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
+      workbox: {
+        // Google OAuth redirects (/auth/login, /auth/callback) are real
+        // server navigations, not SPA routes — without this the service
+        // worker's catch-all navigation fallback serves the cached
+        // index.html for them instead of letting them reach the backend,
+        // silently breaking login.
+        navigateFallbackDenylist: [/^\/auth\//],
+      },
       manifest: {
         name: 'CarStats',
         short_name: 'CarStats',
