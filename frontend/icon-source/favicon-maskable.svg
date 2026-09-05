@@ -2,11 +2,11 @@
   <rect width="512" height="512" fill="#d1d5db"/>
   <g transform="translate(256,256) scale(0.8) translate(-256,-270)">
     <g transform="translate(512,0) scale(-1,1)">
-      <rect x="48" y="224" width="416" height="112" rx="28" fill="#dc2626"/>
+      <rect x="100" y="224" width="380" height="112" rx="28" fill="#dc2626"/>
       <polygon points="140,224 180,150 300,148 400,224" fill="#dc2626"/>
       <polygon points="152,214 186,164 222,162 222,214" fill="#bfdbfe"/>
-      <polygon points="246,214 292,156 300,154 392,214" fill="#bfdbfe"/>
-      <ellipse cx="446" cy="248" rx="14" ry="11" fill="#fef3c7"/>
+      <polygon points="246,214 246,158 296,150 392,214" fill="#bfdbfe"/>
+      <ellipse cx="462" cy="248" rx="14" ry="11" fill="#fef3c7"/>
       <circle cx="150" cy="344" r="46" fill="#111827"/>
       <circle cx="150" cy="344" r="18" fill="#6b7280"/>
       <circle cx="386" cy="344" r="46" fill="#111827"/>
