@@ -47,7 +47,7 @@ export function CostBreakdownChart({ data }: { data: CostBreakdown }) {
               title={typeof payload?.[0]?.payload?.name === 'string' ? payload[0].payload.name : undefined}
               items={
                 payload?.[0]
-                  ? [{ value: `${Number(payload[0].value).toFixed(2)} Kč` }]
+                  ? [{ value: `${Number(payload[0].value).toFixed(0)} Kč` }]
                   : []
               }
             />

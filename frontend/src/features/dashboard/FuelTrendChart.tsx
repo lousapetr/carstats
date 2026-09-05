@@ -72,7 +72,7 @@ export function FuelPriceTrendChart({ data }: { data: FuelTrendPoint[] }) {
               title={typeof label === 'string' ? formatDate(label) : undefined}
               items={(payload ?? []).map((entry) => ({
                 label: PRICE_TREND_LABELS[String(entry.dataKey)] ?? String(entry.name),
-                value: Number(entry.value).toFixed(2),
+                value: Number(entry.value).toFixed(entry.dataKey === 'price_total' ? 0 : 2),
                 color: entry.color,
               }))}
             />
