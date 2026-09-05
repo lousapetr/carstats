@@ -9,6 +9,7 @@ import {
   YAxis,
 } from 'recharts'
 import type { FuelTrendPoint } from '../../types'
+import { formatDate } from '../../lib/dates'
 import { ChartTooltip } from './ChartTooltip'
 
 const CHART_COLORS = {
@@ -44,6 +45,7 @@ export function FuelPriceTrendChart({ data }: { data: FuelTrendPoint[] }) {
         />
         <XAxis
           dataKey="date"
+          tickFormatter={formatDate}
           tick={{ fontSize: 11, fill: CHART_COLORS.axis.light }}
           tickLine={false}
           axisLine={false}
@@ -67,7 +69,7 @@ export function FuelPriceTrendChart({ data }: { data: FuelTrendPoint[] }) {
           content={({ active, label, payload }) => (
             <ChartTooltip
               active={active}
-              title={typeof label === 'string' ? label : undefined}
+              title={typeof label === 'string' ? formatDate(label) : undefined}
               items={(payload ?? []).map((entry) => ({
                 label: PRICE_TREND_LABELS[String(entry.dataKey)] ?? String(entry.name),
                 value: Number(entry.value).toFixed(2),
@@ -118,6 +120,7 @@ export function ConsumptionTrendChart({ data }: { data: FuelTrendPoint[] }) {
         />
         <XAxis
           dataKey="date"
+          tickFormatter={formatDate}
           tick={{ fontSize: 11, fill: CHART_COLORS.axis.light }}
           tickLine={false}
           axisLine={false}
@@ -132,7 +135,7 @@ export function ConsumptionTrendChart({ data }: { data: FuelTrendPoint[] }) {
           content={({ active, label, payload }) => (
             <ChartTooltip
               active={active}
-              title={typeof label === 'string' ? label : undefined}
+              title={typeof label === 'string' ? formatDate(label) : undefined}
               items={
                 payload?.[0]
                   ? [{ value: `${Number(payload[0].value).toFixed(1)} l/100 km` }]

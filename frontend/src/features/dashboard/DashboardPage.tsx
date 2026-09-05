@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card'
 import { StatTile } from '../../components/ui/StatTile'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { formatCzk } from '../../lib/currencies'
+import { formatDate } from '../../lib/dates'
 import { CostBreakdownChart } from './CostBreakdownChart'
 import { ConsumptionTrendChart, FuelPriceTrendChart } from './FuelTrendChart'
 
@@ -119,7 +120,7 @@ export function DashboardPage() {
               }`}
             >
               <span className="text-gray-700 dark:text-gray-300">
-                {item.date} · {item.label}
+                {formatDate(item.date)} · {item.label}
               </span>
               <span className="text-gray-500 dark:text-gray-400">{formatCzk(item.cost)}</span>
             </div>

@@ -4,6 +4,7 @@ import { fuelApi } from '../../api/fuel'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { confirmDialog } from '../../lib/confirmBus'
+import { formatDate } from '../../lib/dates'
 import type { FuelEntry, FuelEntryInput } from '../../types'
 import { FuelForm } from './FuelForm'
 
@@ -80,7 +81,7 @@ export function FuelLogPage() {
           <Card key={entry.id} className="flex items-center justify-between">
             <div>
               <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                {entry.date} · {entry.mileage_km.toLocaleString()} km
+                {formatDate(entry.date)} · {entry.mileage_km.toLocaleString()} km
                 {!entry.full_tank && (
                   <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-normal text-amber-800 dark:bg-amber-900 dark:text-amber-200">
                     částečné tankování

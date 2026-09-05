@@ -4,6 +4,7 @@ import { maintenanceApi } from '../../api/maintenance'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { confirmDialog } from '../../lib/confirmBus'
+import { formatDate } from '../../lib/dates'
 import type { ServiceEntry, ServiceEntryInput } from '../../types'
 import { AttachmentUploader } from './AttachmentUploader'
 import { MaintenanceForm } from './MaintenanceForm'
@@ -91,7 +92,7 @@ export function MaintenanceLogPage() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {TYPE_LABELS[entry.type]} · {entry.date}
+                  {TYPE_LABELS[entry.type]} · {formatDate(entry.date)}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   {entry.mileage_km.toLocaleString()} km · {entry.cost.toFixed(2)} {entry.currency}
