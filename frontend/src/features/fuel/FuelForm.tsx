@@ -84,7 +84,7 @@ export function FuelForm({
       <Field label="Cena za litr" error={errors.price_per_liter?.message}>
         <input
           type="number"
-          step="0.01"
+          step="0.001"
           className={inputClass}
           {...register('price_per_liter')}
         />
