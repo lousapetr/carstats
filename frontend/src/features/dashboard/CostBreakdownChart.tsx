@@ -44,7 +44,9 @@ export function CostBreakdownChart({ data }: { data: CostBreakdown }) {
             `${Number(value).toFixed(2)} Kč`,
             props.payload?.name ?? '',
           ]}
-          contentStyle={{ fontSize: 12 }}
+          contentStyle={{ fontSize: 12, padding: '4px 8px' }}
+          itemStyle={{ padding: 0 }}
+          labelStyle={{ marginBottom: 2 }}
         />
         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
           {chartData.map((row) => (

@@ -67,7 +67,9 @@ export function FuelPriceTrendChart({ data }: { data: FuelTrendPoint[] }) {
             Number(value).toFixed(2),
             PRICE_TREND_LABELS[String(name)] ?? String(name),
           ]}
-          contentStyle={{ fontSize: 12 }}
+          contentStyle={{ fontSize: 12, padding: '4px 8px' }}
+          itemStyle={{ padding: 0 }}
+          labelStyle={{ marginBottom: 2 }}
         />
         <Legend
           formatter={(value) => PRICE_TREND_LABELS[value] ?? value}
@@ -123,7 +125,9 @@ export function ConsumptionTrendChart({ data }: { data: FuelTrendPoint[] }) {
         />
         <Tooltip
           formatter={(value) => [Number(value).toFixed(1), 'l/100 km']}
-          contentStyle={{ fontSize: 12 }}
+          contentStyle={{ fontSize: 12, padding: '4px 8px' }}
+          itemStyle={{ padding: 0 }}
+          labelStyle={{ marginBottom: 2 }}
         />
         <Line
           type="monotone"
