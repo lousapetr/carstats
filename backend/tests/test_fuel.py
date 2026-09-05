@@ -121,6 +121,48 @@ def test_create_fuel_entry_backfilling_earlier_date_is_allowed(client):
     assert response.status_code == 201
 
 
+def test_partial_fill_has_no_consumption(client):
+    client.post(
+        "/api/fuel-entries",
+        json={"date": "2026-08-01", "mileage_km": 10000, "liters": 40, "price_per_liter": 1.5},
+    )
+    partial = client.post(
+        "/api/fuel-entries",
+        json={
+            "date": "2026-08-03",
+            "mileage_km": 10300,
+            "liters": 20,
+            "price_per_liter": 1.5,
+            "full_tank": False,
+        },
+    ).json()
+    assert partial["full_tank"] is False
+    assert partial["consumption_l_per_100km"] is None
+
+
+def test_full_to_full_consumption_sums_liters_across_partial_fills(client):
+    client.post(
+        "/api/fuel-entries",
+        json={"date": "2026-08-01", "mileage_km": 10000, "liters": 40, "price_per_liter": 1.5},
+    )
+    client.post(
+        "/api/fuel-entries",
+        json={
+            "date": "2026-08-03",
+            "mileage_km": 10300,
+            "liters": 20,
+            "price_per_liter": 1.5,
+            "full_tank": False,
+        },
+    )
+    next_full = client.post(
+        "/api/fuel-entries",
+        json={"date": "2026-08-05", "mileage_km": 10500, "liters": 15, "price_per_liter": 1.5},
+    ).json()
+    # (20 partial + 15 full) liters over the 500 km since the last full tank.
+    assert next_full["consumption_l_per_100km"] == 7.0
+
+
 def test_create_fuel_entry_with_eur_converts_to_czk(client):
     client.put("/api/currency-rates/EUR", json={"rate_to_czk": 25.0})
     response = client.post(

@@ -37,6 +37,7 @@ export interface FuelEntry {
   liters: number
   price_per_liter: number
   currency: Currency
+  full_tank: boolean
   notes: string | null
   price_per_liter_czk: number
   price_total: number
@@ -50,6 +51,7 @@ export interface FuelEntryInput {
   liters: number
   price_per_liter: number
   currency: Currency
+  full_tank?: boolean
   notes?: string | null
 }
 

@@ -13,5 +13,6 @@ class FuelEntry(SQLModel, table=True):
     price_per_liter: float  # in the original currency
     currency: Currency = Currency.CZK
     exchange_rate: float = 1.0  # rate_to_czk snapshot at entry time
+    full_tank: bool = Field(default=True)
     notes: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

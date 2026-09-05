@@ -13,6 +13,7 @@ function toFormValues(entry: FuelEntry) {
     liters: entry.liters,
     price_per_liter: entry.price_per_liter,
     currency: entry.currency,
+    full_tank: entry.full_tank,
     notes: entry.notes ?? undefined,
   }
 }
@@ -79,12 +80,19 @@ export function FuelLogPage() {
             <div>
               <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {entry.date} · {entry.mileage_km.toLocaleString()} km
+                {!entry.full_tank && (
+                  <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-normal text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                    částečné tankování
+                  </span>
+                )}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">
                 {entry.liters} l · {entry.price_total.toFixed(2)} {entry.currency}
                 {entry.currency !== 'CZK' && ` (${entry.price_total_czk.toFixed(0)} Kč)`}
-                {entry.consumption_l_per_100km !== null &&
-                  ` · ${entry.consumption_l_per_100km} l/100 km`}
+                {entry.full_tank &&
+                  (entry.consumption_l_per_100km !== null
+                    ? ` · ${entry.consumption_l_per_100km} l/100 km`
+                    : ' · spotřeba: –')}
               </div>
               {entry.notes && (
                 <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">{entry.notes}</div>

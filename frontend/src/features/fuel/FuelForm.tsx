@@ -11,6 +11,7 @@ const schema = z.object({
   liters: z.coerce.number().positive('Musí být kladné číslo'),
   price_per_liter: z.coerce.number().positive('Musí být kladné číslo'),
   currency: z.enum(CURRENCY_CODES),
+  full_tank: z.boolean().default(true),
   notes: z.string().optional(),
 })
 
@@ -40,6 +41,7 @@ export function FuelForm({
     defaultValues: defaultValues ?? {
       date: new Date().toISOString().slice(0, 10),
       currency: 'CZK',
+      full_tank: true,
     },
   })
 
@@ -48,7 +50,7 @@ export function FuelForm({
       onSubmit={handleSubmit((values) => {
         onSubmit(values)
         if (!defaultValues) {
-          reset({ date: new Date().toISOString().slice(0, 10), currency: 'CZK' })
+          reset({ date: new Date().toISOString().slice(0, 10), currency: 'CZK', full_tank: true })
         }
       })}
       className="grid grid-cols-2 gap-3"
@@ -79,6 +81,12 @@ export function FuelForm({
           ))}
         </select>
       </Field>
+      <div className="col-span-2">
+        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <input type="checkbox" className="h-4 w-4" {...register('full_tank')} />
+          Plná nádrž
+        </label>
+      </div>
       <div className="col-span-2">
         <Field label="Poznámka">
           <input type="text" className={inputClass} {...register('notes')} />
