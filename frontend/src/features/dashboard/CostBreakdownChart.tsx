@@ -39,7 +39,13 @@ export function CostBreakdownChart({ data }: { data: CostBreakdown }) {
         <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#2c2c2a' : '#e1e0d9'} vertical={false} />
         <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#898781' }} tickLine={false} axisLine={false} />
         <YAxis tick={{ fontSize: 11, fill: '#898781' }} tickLine={false} axisLine={false} width={40} />
-        <Tooltip formatter={(value) => Number(value).toFixed(2)} contentStyle={{ fontSize: 12 }} />
+        <Tooltip
+          formatter={(value, _name, props) => [
+            `${Number(value).toFixed(2)} Kč`,
+            props.payload?.name ?? '',
+          ]}
+          contentStyle={{ fontSize: 12 }}
+        />
         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
           {chartData.map((row) => (
             <Cell

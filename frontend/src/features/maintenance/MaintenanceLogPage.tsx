@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { maintenanceApi } from '../../api/maintenance'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
+import { confirmDialog } from '../../lib/confirmBus'
 import type { ServiceEntry, ServiceEntryInput } from '../../types'
 import { AttachmentUploader } from './AttachmentUploader'
 import { MaintenanceForm } from './MaintenanceForm'
@@ -106,7 +107,14 @@ export function MaintenanceLogPage() {
                 <Button variant="secondary" onClick={() => setEditingEntry(entry)}>
                   Upravit
                 </Button>
-                <Button variant="danger" onClick={() => deleteMutation.mutate(entry.id)}>
+                <Button
+                  variant="danger"
+                  onClick={async () => {
+                    if (await confirmDialog('Opravdu smazat tento záznam servisu?')) {
+                      deleteMutation.mutate(entry.id)
+                    }
+                  }}
+                >
                   Smazat
                 </Button>
               </div>

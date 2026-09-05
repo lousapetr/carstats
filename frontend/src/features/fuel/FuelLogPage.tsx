@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { fuelApi } from '../../api/fuel'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
+import { confirmDialog } from '../../lib/confirmBus'
 import type { FuelEntry, FuelEntryInput } from '../../types'
 import { FuelForm } from './FuelForm'
 
@@ -102,7 +103,14 @@ export function FuelLogPage() {
               <Button variant="secondary" onClick={() => setEditingEntry(entry)}>
                 Upravit
               </Button>
-              <Button variant="danger" onClick={() => deleteMutation.mutate(entry.id)}>
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  if (await confirmDialog('Opravdu smazat toto tankování?')) {
+                    deleteMutation.mutate(entry.id)
+                  }
+                }}
+              >
                 Smazat
               </Button>
             </div>

@@ -4,6 +4,7 @@ import { remindersApi } from '../../api/reminders'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { StatusBadge } from '../../components/ui/StatusBadge'
+import { confirmDialog } from '../../lib/confirmBus'
 import type { Reminder, ReminderInput } from '../../types'
 import { ReminderForm } from './ReminderForm'
 
@@ -103,7 +104,14 @@ export function RemindersPage() {
               <Button variant="secondary" onClick={() => completeMutation.mutate(reminder.id)}>
                 Hotovo
               </Button>
-              <Button variant="danger" onClick={() => deleteMutation.mutate(reminder.id)}>
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  if (await confirmDialog('Opravdu smazat tuto připomínku?')) {
+                    deleteMutation.mutate(reminder.id)
+                  }
+                }}
+              >
                 Smazat
               </Button>
             </div>

@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { ApiError } from './api/client'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { LoginScreen } from './auth/LoginScreen'
+import { ConfirmDialogHost } from './components/ui/ConfirmDialogHost'
 import { ToastHost } from './components/ui/ToastHost'
 import { DashboardPage } from './features/dashboard/DashboardPage'
 import { FuelLogPage } from './features/fuel/FuelLogPage'
@@ -56,6 +57,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastHost />
+      <ConfirmDialogHost />
       <AuthProvider>
         <AuthGate />
       </AuthProvider>
