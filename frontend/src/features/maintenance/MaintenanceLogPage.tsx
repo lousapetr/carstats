@@ -11,6 +11,7 @@ const TYPE_LABELS: Record<string, string> = {
   oil_change: 'Výměna oleje',
   tires: 'Pneumatiky',
   engine_service: 'Servis motoru',
+  additives: 'Aditiva',
   other: 'Jiné',
 }
 

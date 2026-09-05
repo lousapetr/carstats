@@ -15,6 +15,7 @@ SERVICE_TYPE_LABELS_CS = {
     "oil_change": "Výměna oleje",
     "tires": "Pneumatiky",
     "engine_service": "Servis motoru",
+    "additives": "Aditiva",
     "other": "Jiné",
 }
 

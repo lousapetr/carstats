@@ -6,6 +6,7 @@ const CATEGORY_COLORS: Record<string, { light: string; dark: string; label: stri
   oil_change: { light: '#eb6834', dark: '#d95926', label: 'Výměna oleje' },
   tires: { light: '#1baf7a', dark: '#199e70', label: 'Pneumatiky' },
   engine_service: { light: '#eda100', dark: '#c98500', label: 'Servis motoru' },
+  additives: { light: '#8b5cf6', dark: '#7c3aed', label: 'Aditiva' },
   other: { light: '#e87ba4', dark: '#d55181', label: 'Jiné' },
 }
 

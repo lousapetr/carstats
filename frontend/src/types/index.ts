@@ -53,7 +53,7 @@ export interface FuelEntryInput {
   notes?: string | null
 }
 
-export type ServiceType = 'oil_change' | 'tires' | 'engine_service' | 'other'
+export type ServiceType = 'oil_change' | 'tires' | 'engine_service' | 'additives' | 'other'
 
 export interface Attachment {
   id: number

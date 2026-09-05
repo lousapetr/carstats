@@ -8,7 +8,7 @@ import { CURRENCIES, CURRENCY_CODES, CURRENCY_LABELS } from '../../lib/currencie
 const schema = z.object({
   date: z.string().min(1, 'Povinné pole'),
   mileage_km: z.coerce.number().positive('Musí být kladné číslo'),
-  type: z.enum(['oil_change', 'tires', 'engine_service', 'other']),
+  type: z.enum(['oil_change', 'tires', 'engine_service', 'additives', 'other']),
   description: z.string().optional(),
   cost: z.coerce.number().min(0, 'Musí být 0 nebo více'),
   currency: z.enum(CURRENCY_CODES),
@@ -22,6 +22,7 @@ const TYPE_OPTIONS: { value: MaintenanceFormValues['type']; label: string }[] = 
   { value: 'oil_change', label: 'Výměna oleje' },
   { value: 'tires', label: 'Pneumatiky' },
   { value: 'engine_service', label: 'Servis motoru' },
+  { value: 'additives', label: 'Aditiva' },
   { value: 'other', label: 'Jiné' },
 ]
 

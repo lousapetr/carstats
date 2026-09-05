@@ -10,6 +10,7 @@ class ServiceType(StrEnum):
     oil_change = "oil_change"
     tires = "tires"
     engine_service = "engine_service"
+    additives = "additives"
     other = "other"
 
 
