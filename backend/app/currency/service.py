@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from sqlmodel import Session, select
 
+from app.currency import cnb_client
 from app.currency.models import DEFAULT_RATES_TO_CZK, Currency, CurrencyRate
 
 
@@ -50,3 +51,16 @@ def resolve_exchange_rate(db: Session, currency: Currency, override: float | Non
     if override != get_rate(db, currency):
         update_rate(db, currency, override)
     return override
+
+
+def refresh_all_rates(db: Session) -> dict[Currency, float]:
+    """Fetch the latest ČNB daily fixing and overwrite every currency's
+    Settings default with it. Run once a day (see refresh_rates.sh) — this
+    intentionally overwrites any manual edit made via Settings or an entry
+    form's rate override, since those are meant as same-day corrections.
+    """
+    rates = cnb_client.parse_rates(cnb_client.fetch_daily_text())
+    for currency, rate in rates.items():
+        if currency in DEFAULT_RATES_TO_CZK:
+            update_rate(db, currency, rate)
+    return rates

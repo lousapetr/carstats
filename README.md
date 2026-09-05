@@ -133,3 +133,19 @@ Backups land in the `carstats-backups` folder on Drive as
 (`REMOTE_RETENTION_DAYS` env var to change). Restore by downloading an
 archive, extracting it, and `docker compose cp`-ing `carstats.db` and
 `uploads/` back into the `app` container's `/app/data/`.
+
+### Automatic exchange rates
+
+`refresh_rates.sh` fetches the Czech National Bank's daily fixing rates
+(already CZK-denominated, covers every foreign currency this app supports)
+and overwrites each currency's Settings default with it. This intentionally
+overwrites any rate you edited manually that day — automatic refresh always
+wins on the next sync, so treat manual edits (in Settings or on an entry
+form) as same-day corrections only.
+
+Add a daily cron job on the VM: `crontab -e`, then add a line like:
+```
+30 15 * * * /home/opc/carstats/refresh_rates.sh >> /home/opc/carstats/refresh_rates.log 2>&1
+```
+(adjust the path, and the time — ČNB publishes around 14:30 CET on business
+days, so run this a bit after that, adjusted for the VM's own timezone).
