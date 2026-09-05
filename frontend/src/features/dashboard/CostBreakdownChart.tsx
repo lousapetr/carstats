@@ -1,5 +1,6 @@
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { CostBreakdown } from '../../types'
+import { ChartTooltip } from './ChartTooltip'
 
 const CATEGORY_COLORS: Record<string, { light: string; dark: string; label: string }> = {
   fuel: { light: '#2a78d6', dark: '#3987e5', label: 'Palivo' },
@@ -40,13 +41,17 @@ export function CostBreakdownChart({ data }: { data: CostBreakdown }) {
         <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#898781' }} tickLine={false} axisLine={false} />
         <YAxis tick={{ fontSize: 11, fill: '#898781' }} tickLine={false} axisLine={false} width={40} />
         <Tooltip
-          formatter={(value, _name, props) => [
-            `${Number(value).toFixed(2)} Kč`,
-            props.payload?.name ?? '',
-          ]}
-          contentStyle={{ fontSize: 12, padding: '4px 8px' }}
-          itemStyle={{ padding: 0 }}
-          labelStyle={{ marginBottom: 2 }}
+          content={({ active, payload }) => (
+            <ChartTooltip
+              active={active}
+              title={typeof payload?.[0]?.payload?.name === 'string' ? payload[0].payload.name : undefined}
+              items={
+                payload?.[0]
+                  ? [{ value: `${Number(payload[0].value).toFixed(2)} Kč` }]
+                  : []
+              }
+            />
+          )}
         />
         <Bar dataKey="value" radius={[4, 4, 0, 0]}>
           {chartData.map((row) => (

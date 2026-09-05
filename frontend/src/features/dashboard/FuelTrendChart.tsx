@@ -9,6 +9,7 @@ import {
   YAxis,
 } from 'recharts'
 import type { FuelTrendPoint } from '../../types'
+import { ChartTooltip } from './ChartTooltip'
 
 const CHART_COLORS = {
   price: { light: '#2a78d6', dark: '#3987e5' },
@@ -63,13 +64,17 @@ export function FuelPriceTrendChart({ data }: { data: FuelTrendPoint[] }) {
           width={36}
         />
         <Tooltip
-          formatter={(value, name) => [
-            Number(value).toFixed(2),
-            PRICE_TREND_LABELS[String(name)] ?? String(name),
-          ]}
-          contentStyle={{ fontSize: 12, padding: '4px 8px' }}
-          itemStyle={{ padding: 0 }}
-          labelStyle={{ marginBottom: 2 }}
+          content={({ active, label, payload }) => (
+            <ChartTooltip
+              active={active}
+              title={typeof label === 'string' ? label : undefined}
+              items={(payload ?? []).map((entry) => ({
+                label: PRICE_TREND_LABELS[String(entry.dataKey)] ?? String(entry.name),
+                value: Number(entry.value).toFixed(2),
+                color: entry.color,
+              }))}
+            />
+          )}
         />
         <Legend
           formatter={(value) => PRICE_TREND_LABELS[value] ?? value}
@@ -124,10 +129,17 @@ export function ConsumptionTrendChart({ data }: { data: FuelTrendPoint[] }) {
           width={36}
         />
         <Tooltip
-          formatter={(value) => [Number(value).toFixed(1), 'l/100 km']}
-          contentStyle={{ fontSize: 12, padding: '4px 8px' }}
-          itemStyle={{ padding: 0 }}
-          labelStyle={{ marginBottom: 2 }}
+          content={({ active, label, payload }) => (
+            <ChartTooltip
+              active={active}
+              title={typeof label === 'string' ? label : undefined}
+              items={
+                payload?.[0]
+                  ? [{ value: `${Number(payload[0].value).toFixed(1)} l/100 km` }]
+                  : []
+              }
+            />
+          )}
         />
         <Line
           type="monotone"
