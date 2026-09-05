@@ -1,0 +1,15 @@
+# Kept out of the build context so local dev artifacts never bust Docker's
+# layer cache on COPY frontend/./COPY backend/ (and, for .env, so secrets
+# never get baked into an image layer).
+.git
+
+frontend/node_modules
+frontend/dist
+
+backend/.venv
+backend/data
+backend/**/__pycache__
+backend/.pytest_cache
+
+.env
+**/.env
