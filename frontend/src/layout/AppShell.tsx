@@ -16,7 +16,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-950">
-        <span className="text-base font-semibold text-gray-900 dark:text-gray-100">CarStats</span>
+        <span className="flex items-center gap-2 text-base font-semibold text-gray-900 dark:text-gray-100">
+          <img src="/favicon.svg" alt="" className="h-6 w-6" />
+          CarStats
+        </span>
         <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
           <span className="hidden sm:inline">{email}</span>
           <button
