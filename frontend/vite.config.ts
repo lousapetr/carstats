@@ -11,6 +11,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
+      // pwa-*.png / maskable-icon-*.png are generated from favicon.svg and
+      // icon-source/favicon-maskable.svg via ImageMagick — regenerate rather
+      // than hand-edit if the source design changes.
       workbox: {
         // Google OAuth redirects (/auth/login, /auth/callback) are real
         // server navigations, not SPA routes — without this the service
@@ -33,6 +36,12 @@ export default defineConfig({
           // full-bleed, opaque design or it renders broken on Android's
           // adaptive home-screen icon system.
           { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          // Full-bleed variant with the car glyph confined to the safe zone,
+          // for Android/Nova Launcher's adaptive (maskable) home-screen icon.
+          { src: 'maskable-icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
     }),
