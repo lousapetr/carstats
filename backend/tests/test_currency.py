@@ -22,24 +22,36 @@ def test_parse_rates_ignores_unsupported_currencies():
     assert "USD" not in {c.value for c in rates}
 
 
-def test_list_currency_rates_seeds_defaults(client):
+def test_list_currency_rates_fetches_from_cnb(client):
     rates = client.get("/api/currency-rates").json()
     currencies = {r["currency"] for r in rates}
     assert currencies == {"EUR", "PLN", "HUF", "GBP", "CHF", "SEK", "NOK", "DKK", "RON"}
     eur = next(r for r in rates if r["currency"] == "EUR")
-    assert eur["rate_to_czk"] == 25.20
+    assert eur["rate_to_czk"] == 25.0  # from conftest's stubbed CNB_SAMPLE_TEXT
 
 
-def test_update_currency_rate(client):
-    response = client.put("/api/currency-rates/EUR", json={"rate_to_czk": 26.5})
+def test_currency_rates_fetched_at_most_once_per_day(client, monkeypatch):
+    calls = 0
+
+    def fake_fetch() -> str:
+        nonlocal calls
+        calls += 1
+        return CNB_SAMPLE
+
+    monkeypatch.setattr("app.currency.cnb_client.fetch_daily_text", fake_fetch)
+
+    client.get("/api/currency-rates")
+    client.get("/api/currency-rates")
+    assert calls == 1
+
+
+def test_currency_rates_fall_back_to_seeded_defaults_when_cnb_unreachable(client, monkeypatch):
+    def fake_fetch() -> str:
+        raise ConnectionError("network down")
+
+    monkeypatch.setattr("app.currency.cnb_client.fetch_daily_text", fake_fetch)
+
+    response = client.get("/api/currency-rates")
     assert response.status_code == 200
-    assert response.json()["rate_to_czk"] == 26.5
-
-    rates = client.get("/api/currency-rates").json()
-    eur = next(r for r in rates if r["currency"] == "EUR")
-    assert eur["rate_to_czk"] == 26.5
-
-
-def test_cannot_update_czk_rate(client):
-    response = client.put("/api/currency-rates/CZK", json={"rate_to_czk": 2.0})
-    assert response.status_code == 400
+    eur = next(r for r in response.json() if r["currency"] == "EUR")
+    assert eur["rate_to_czk"] == 25.20  # DEFAULT_RATES_TO_CZK fallback

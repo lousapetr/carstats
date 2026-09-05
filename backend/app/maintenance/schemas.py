@@ -13,7 +13,6 @@ class ServiceEntryCreate(BaseModel):
     description: str | None = None
     cost: float
     currency: Currency = Currency.CZK
-    exchange_rate: float | None = None  # None = use current Settings default
     notes: str | None = None
 
 
@@ -25,5 +24,6 @@ class AttachmentRead(BaseModel):
 
 class ServiceEntryRead(ServiceEntryCreate):
     id: int
+    exchange_rate: float  # rate_to_czk snapshot used for this entry
     cost_czk: float
     attachments: list[AttachmentRead] = []

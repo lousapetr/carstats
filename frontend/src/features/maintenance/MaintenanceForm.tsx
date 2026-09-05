@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { currencyApi } from '../../api/currency'
@@ -15,7 +14,6 @@ const schema = z.object({
   description: z.string().optional(),
   cost: z.coerce.number().min(0, 'Musí být 0 nebo více'),
   currency: z.enum(CURRENCY_CODES),
-  exchange_rate: z.coerce.number().positive('Musí být kladné číslo').optional(),
   notes: z.string().optional(),
 })
 
@@ -48,7 +46,6 @@ export function MaintenanceForm({
     handleSubmit,
     reset,
     watch,
-    setValue,
     formState: { errors },
   } = useForm<MaintenanceFormInput, unknown, MaintenanceFormValues>({
     resolver: zodResolver(schema),
@@ -61,14 +58,7 @@ export function MaintenanceForm({
 
   const currency = watch('currency')
   const { data: rates } = useQuery({ queryKey: ['currency-rates'], queryFn: currencyApi.list })
-
-  useEffect(() => {
-    if (currency === 'CZK') return
-    const defaultRate = rates?.find((r) => r.currency === currency)?.rate_to_czk
-    if (defaultRate !== undefined) {
-      setValue('exchange_rate', defaultRate)
-    }
-  }, [currency, rates, setValue])
+  const currentRate = rates?.find((r) => r.currency === currency)?.rate_to_czk
 
   return (
     <form
@@ -112,12 +102,13 @@ export function MaintenanceForm({
         </select>
       </Field>
       {currency !== 'CZK' && (
-        <Field label="Kurz k Kč" error={errors.exchange_rate?.message}>
+        <Field label="Kurz k CZK (ČNB)">
           <input
             type="number"
-            step="0.0001"
-            className={inputClass}
-            {...register('exchange_rate')}
+            className={`${inputClass} opacity-60`}
+            value={currentRate ?? ''}
+            disabled
+            readOnly
           />
         </Field>
       )}

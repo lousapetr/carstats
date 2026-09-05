@@ -16,6 +16,29 @@ from app.fuel import models as _fuel_models  # noqa: F401
 from app.maintenance import models as _maintenance_models  # noqa: F401
 from app.reminders import models as _reminders_models  # noqa: F401
 
+# Every test that resolves a non-CZK exchange rate would otherwise trigger a
+# real network call to the ČNB (see currency/service.py::_ensure_rates_fresh)
+# on a fresh temp DB. Stub it to a fixed sample so tests stay offline and
+# deterministic; EUR is 25.0 (not the 25.20 default) to match the rate
+# values existing tests already assert on.
+CNB_SAMPLE_TEXT = """05.09.2026 #172
+Country|Currency|Amount|Code|Rate
+EMU|euro|1|EUR|25.0
+Poland|zloty|1|PLN|5.85
+Hungary|forint|100|HUF|6.35
+United Kingdom|pound|1|GBP|29.80
+Switzerland|franc|1|CHF|27.00
+Sweden|krona|1|SEK|2.20
+Norway|krone|1|NOK|2.10
+Denmark|krone|1|DKK|3.38
+Romania|leu|1|RON|5.05
+"""
+
+
+@pytest.fixture(autouse=True)
+def _stub_cnb_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("app.currency.cnb_client.fetch_daily_text", lambda: CNB_SAMPLE_TEXT)
+
 
 @pytest.fixture()
 def client() -> Generator[TestClient, None, None]:

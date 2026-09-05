@@ -4,7 +4,7 @@ from app.car.service import (
     recalculate_current_mileage,
     validate_mileage_consistency,
 )
-from app.currency.service import resolve_exchange_rate
+from app.currency.service import get_rate
 from app.fuel.models import FuelEntry
 from app.fuel.schemas import FuelEntryCreate, FuelEntryRead
 
@@ -60,7 +60,7 @@ def _consumption_for_entry(db: Session, entry: FuelEntry) -> float | None:
 
 def create_entry(db: Session, data: FuelEntryCreate) -> FuelEntryRead:
     validate_mileage_consistency(db, data.date, data.mileage_km)
-    exchange_rate = resolve_exchange_rate(db, data.currency, data.exchange_rate)
+    exchange_rate = get_rate(db, data.currency)
 
     entry = FuelEntry(
         date=data.date,
@@ -82,7 +82,7 @@ def create_entry(db: Session, data: FuelEntryCreate) -> FuelEntryRead:
 
 def update_entry(db: Session, entry: FuelEntry, data: FuelEntryCreate) -> FuelEntryRead:
     validate_mileage_consistency(db, data.date, data.mileage_km, exclude_fuel_id=entry.id)
-    exchange_rate = resolve_exchange_rate(db, data.currency, data.exchange_rate)
+    exchange_rate = get_rate(db, data.currency)
 
     entry.date = data.date
     entry.mileage_km = data.mileage_km

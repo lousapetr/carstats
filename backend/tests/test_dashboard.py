@@ -66,7 +66,6 @@ def test_fuel_trend_is_chronological(client):
 
 
 def test_fuel_trend_converts_to_czk(client):
-    client.put("/api/currency-rates/EUR", json={"rate_to_czk": 25.0})
     client.post(
         "/api/fuel-entries",
         json={

@@ -11,13 +11,13 @@ class FuelEntryCreate(BaseModel):
     liters: float
     price_per_liter: float
     currency: Currency = Currency.CZK
-    exchange_rate: float | None = None  # None = use current Settings default
     full_tank: bool = True
     notes: str | None = None
 
 
 class FuelEntryRead(FuelEntryCreate):
     id: int
+    exchange_rate: float  # rate_to_czk snapshot used for this entry
     price_per_liter_czk: float
     price_total: float  # original-currency total (liters * price_per_liter)
     price_total_czk: float

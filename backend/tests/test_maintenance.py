@@ -73,7 +73,6 @@ def test_create_service_entry_with_lower_mileage_than_history_is_rejected(client
 
 
 def test_create_service_entry_with_eur_converts_to_czk(client):
-    client.put("/api/currency-rates/EUR", json={"rate_to_czk": 25.0})
     response = client.post(
         "/api/service-entries",
         json={
