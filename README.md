@@ -13,7 +13,7 @@ allowed email.
 ```bash
 cd backend
 uv sync
-cp .env.example .env   # fill in ALLOWED_EMAIL at minimum; Google OAuth creds
+# cp .env.example .env   # fill in ALLOWED_EMAIL at minimum; Google OAuth creds
                         # aren't needed to exercise most of the API locally
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
