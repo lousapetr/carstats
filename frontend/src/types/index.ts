@@ -37,6 +37,7 @@ export interface FuelEntry {
   liters: number
   price_per_liter: number
   currency: Currency
+  exchange_rate: number
   full_tank: boolean
   notes: string | null
   price_per_liter_czk: number
@@ -51,6 +52,7 @@ export interface FuelEntryInput {
   liters: number
   price_per_liter: number
   currency: Currency
+  exchange_rate?: number
   full_tank?: boolean
   notes?: string | null
 }
@@ -71,6 +73,7 @@ export interface ServiceEntry {
   description: string | null
   cost: number
   currency: Currency
+  exchange_rate: number
   cost_czk: number
   notes: string | null
   attachments: Attachment[]
@@ -83,6 +86,7 @@ export interface ServiceEntryInput {
   description?: string | null
   cost: number
   currency: Currency
+  exchange_rate?: number
   notes?: string | null
 }
 

@@ -37,3 +37,16 @@ def update_rate(db: Session, currency: Currency, rate_to_czk: float) -> Currency
     db.commit()
     db.refresh(row)
     return row
+
+
+def resolve_exchange_rate(db: Session, currency: Currency, override: float | None) -> float:
+    """The rate to snapshot on a fuel/service entry: `override` (from an
+    entry form editing the rate inline) updates the Settings default and is
+    used as-is, otherwise falls back to today's default via `get_rate`.
+    CZK is never overridable — its rate is always 1.0.
+    """
+    if currency == Currency.CZK or override is None:
+        return get_rate(db, currency)
+    if override != get_rate(db, currency):
+        update_rate(db, currency, override)
+    return override

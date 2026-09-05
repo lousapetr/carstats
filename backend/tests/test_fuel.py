@@ -180,3 +180,43 @@ def test_create_fuel_entry_with_eur_converts_to_czk(client):
     assert body["price_total"] == 60.0
     assert body["price_total_czk"] == 1500.0
     assert body["price_per_liter_czk"] == 37.5
+
+
+def test_create_fuel_entry_with_exchange_rate_override_updates_settings_default(client):
+    client.put("/api/currency-rates/EUR", json={"rate_to_czk": 25.0})
+    response = client.post(
+        "/api/fuel-entries",
+        json={
+            "date": "2026-08-01",
+            "mileage_km": 10000,
+            "liters": 40,
+            "price_per_liter": 1.5,
+            "currency": "EUR",
+            "exchange_rate": 26.0,
+        },
+    )
+    body = response.json()
+    assert body["exchange_rate"] == 26.0
+    assert body["price_per_liter_czk"] == 39.0
+
+    rates = {r["currency"]: r["rate_to_czk"] for r in client.get("/api/currency-rates").json()}
+    assert rates["EUR"] == 26.0
+
+
+def test_create_fuel_entry_without_exchange_rate_override_uses_settings_default(client):
+    client.put("/api/currency-rates/EUR", json={"rate_to_czk": 25.0})
+    response = client.post(
+        "/api/fuel-entries",
+        json={
+            "date": "2026-08-01",
+            "mileage_km": 10000,
+            "liters": 40,
+            "price_per_liter": 1.5,
+            "currency": "EUR",
+        },
+    )
+    body = response.json()
+    assert body["exchange_rate"] == 25.0
+
+    rates = {r["currency"]: r["rate_to_czk"] for r in client.get("/api/currency-rates").json()}
+    assert rates["EUR"] == 25.0

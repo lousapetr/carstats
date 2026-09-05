@@ -5,7 +5,7 @@ from app.car.service import (
     recalculate_current_mileage,
     validate_mileage_consistency,
 )
-from app.currency.service import get_rate
+from app.currency.service import resolve_exchange_rate
 from app.maintenance.models import ServiceEntry
 from app.maintenance.schemas import AttachmentRead, ServiceEntryCreate, ServiceEntryRead
 
@@ -19,6 +19,7 @@ def _to_read(entry: ServiceEntry, attachments: list[Attachment]) -> ServiceEntry
         description=entry.description,
         cost=entry.cost,
         currency=entry.currency,
+        exchange_rate=entry.exchange_rate,
         cost_czk=round(entry.cost * entry.exchange_rate, 2),
         notes=entry.notes,
         attachments=[
@@ -34,7 +35,7 @@ def _attachments_for(db: Session, entry_id: int) -> list[Attachment]:
 
 def create_entry(db: Session, data: ServiceEntryCreate) -> ServiceEntryRead:
     validate_mileage_consistency(db, data.date, data.mileage_km)
-    exchange_rate = get_rate(db, data.currency)
+    exchange_rate = resolve_exchange_rate(db, data.currency, data.exchange_rate)
 
     entry = ServiceEntry(
         date=data.date,
@@ -55,7 +56,7 @@ def create_entry(db: Session, data: ServiceEntryCreate) -> ServiceEntryRead:
 
 def update_entry(db: Session, entry: ServiceEntry, data: ServiceEntryCreate) -> ServiceEntryRead:
     validate_mileage_consistency(db, data.date, data.mileage_km, exclude_service_id=entry.id)
-    exchange_rate = get_rate(db, data.currency)
+    exchange_rate = resolve_exchange_rate(db, data.currency, data.exchange_rate)
 
     entry.date = data.date
     entry.mileage_km = data.mileage_km
