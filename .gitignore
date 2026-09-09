@@ -9,6 +9,7 @@ backend/data/
 backend/.env
 backend/.pytest_cache/
 backend/.ruff_cache/
+.env
 
 # Node / frontend
 node_modules/
