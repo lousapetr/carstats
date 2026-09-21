@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Do NOT add comments to fixed code explaining why the 
+original code was incorrect. Only ever comment on active things
+that are hard to get from context.
+
 ## Project overview
 
 CarStats is a personal single-user car logging app: fuel fill-ups, maintenance/service

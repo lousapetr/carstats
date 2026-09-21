@@ -33,3 +33,9 @@ ignore = ["B008"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+[tool.basedpyright]
+# Paths are relative to this file, so backend/ is the import root (`import app...`).
+venvPath = "."
+venv = ".venv"
+ignore = ["tests"]
