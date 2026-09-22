@@ -11,10 +11,10 @@ from app.core.config import settings
 class GoogleOAuthClient(Protocol):
     """The slice of Authlib's StarletteOAuth2App that this app actually calls.
 
-    Authlib resolves registered clients through `BaseOAuth.__getattr__`, which
-    even the typeshed stubs leave unannotated, so `oauth.google` is untyped at
-    the source. Declaring the two methods here is what gives the auth router
-    real types instead of Unknown.
+    Authlib ships no annotations and resolves registered clients through
+    `BaseOAuth.__getattr__`, so `oauth.google` is untyped at the source (the
+    typeshed stubs don't help — they leave `__getattr__` unannotated too).
+    Declaring the two methods here is what gives the auth router real types.
     """
 
     async def authorize_redirect(
@@ -25,7 +25,7 @@ class GoogleOAuthClient(Protocol):
 
 
 oauth = OAuth()
-oauth.register(  # pyright: ignore[reportUnknownMemberType]  # unannotated in the stubs
+oauth.register(  # pyright: ignore[reportUnknownMemberType]  # unannotated upstream
     name="google",
     client_id=settings.google_client_id,
     client_secret=settings.google_client_secret,

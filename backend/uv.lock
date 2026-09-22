@@ -98,7 +98,6 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
-    { name = "types-authlib" },
 ]
 
 [package.metadata]
@@ -119,7 +118,6 @@ dev = [
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-asyncio", specifier = ">=0.24" },
     { name = "ruff", specifier = ">=0.8" },
-    { name = "types-authlib", specifier = ">=1.8.0.20260911" },
 ]
 
 [[package]]
@@ -1269,18 +1267,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ae/40/4a3db7990d1f62a53182aa96eaef57aeb2886a27f90a195bc66713565d31/typer-0.27.1.tar.gz", hash = "sha256:a79bef8469a79c45498e7b814ecf8d603cc7644e9acbd9e19cac0334240b18df", size = 203994, upload-time = "2026-08-03T14:41:03.438Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/43/89/9518bc0c3929bee36b3a4a8e3daddd6e03f92f9961c66d4983b837160543/typer-0.27.1-py3-none-any.whl", hash = "sha256:53150287edd11baeb4e4722c8e394fcdf8181c0ae89485cba8d25c778d5edd56", size = 122874, upload-time = "2026-08-03T14:41:04.391Z" },
-]
-
-[[package]]
-name = "types-authlib"
-version = "1.8.0.20260911"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "cryptography" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/9c/d8/e78ecbe9a5a077f5ccfec1f284ace4e8ae55ce204ec8bd1b00d86a83974a/types_authlib-1.8.0.20260911.tar.gz", hash = "sha256:cde5e55bca5e908438facc8fc701197bf540af880dff7b8ca8cf40a08258a62a", size = 51835, upload-time = "2026-09-11T06:45:26.216Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/65/d9206c38d65602867f15bda7836b1248295b31f3187a09cc1f6195539ebe/types_authlib-1.8.0.20260911-py3-none-any.whl", hash = "sha256:0617c4a2361a605144bae0850f70c18edd5265abec11af66235a02a1b415444e", size = 111525, upload-time = "2026-09-11T06:45:25.033Z" },
 ]
 
 [[package]]
