@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -19,7 +21,9 @@ class Settings(BaseSettings):
 
     allowed_email: str = ""
 
-    model_config = SettingsConfigDict(env_file=".env", env_prefix="CARSTATS_")
+    model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
+        env_file=".env", env_prefix="CARSTATS_"
+    )
 
     @model_validator(mode="after")
     def _require_session_secret(self) -> "Settings":
