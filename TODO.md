@@ -39,6 +39,7 @@ Fix — make the app refuse to start without a real secret:
 # backend/app/core/config.py
 from pydantic import model_validator
 
+
 class Settings(BaseSettings):
     session_secret: str = ""
     ...
@@ -75,7 +76,7 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=settings.session_secret,
     same_site="lax",
-    https_only=settings.cookie_secure,   # new setting, default True; False for local dev
+    https_only=settings.cookie_secure,  # new setting, default True; False for local dev
     max_age=60 * 60 * 24 * 30,
 )
 ```
@@ -105,7 +106,9 @@ Fix — treat a recurrence as active only when it has something to advance:
 def complete_reminder(db: Session, reminder: Reminder) -> ReminderRead:
     rolled = False
     if reminder.recurrence_days is not None:
-        base = max(reminder.due_date, date.today()) if reminder.due_date else date.today()
+        base = (
+            max(reminder.due_date, date.today()) if reminder.due_date else date.today()
+        )
         reminder.due_date = base + timedelta(days=reminder.recurrence_days)
         rolled = True
     if reminder.recurrence_km is not None:
@@ -157,7 +160,14 @@ problem rather than an open door — but a mis-picked 4 GB file is a realistic a
 
 ```python
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
-ALLOWED_CONTENT_TYPES = {"application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic"}
+ALLOWED_CONTENT_TYPES = {
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+}
+
 
 def save_file(service_entry_id: int, upload: UploadFile) -> tuple[str, str, str]:
     content_type = upload.content_type or "application/octet-stream"
@@ -169,7 +179,8 @@ def save_file(service_entry_id: int, upload: UploadFile) -> tuple[str, str, str]
         while chunk := upload.file.read(1024 * 1024):
             written += len(chunk)
             if written > MAX_UPLOAD_BYTES:
-                fh.close(); dest.unlink(missing_ok=True)
+                fh.close()
+                dest.unlink(missing_ok=True)
                 raise ValueError("Soubor je příliš velký (max 20 MB)")
             fh.write(chunk)
 ```

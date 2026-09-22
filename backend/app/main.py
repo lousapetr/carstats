@@ -44,10 +44,6 @@ if os.path.isdir(_dist_dir):
         # Path is resolved and re-checked against _dist_dir_abs to prevent
         # directory traversal via a crafted full_path (e.g. "../../etc/passwd").
         candidate = os.path.abspath(os.path.join(_dist_dir_abs, full_path))
-        if (
-            full_path
-            and candidate.startswith(_dist_dir_abs + os.sep)
-            and os.path.isfile(candidate)
-        ):
+        if full_path and candidate.startswith(_dist_dir_abs + os.sep) and os.path.isfile(candidate):
             return FileResponse(candidate)
         return FileResponse(f"{_dist_dir_abs}/index.html")
