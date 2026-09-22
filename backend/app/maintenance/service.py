@@ -1,16 +1,16 @@
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
-from app.attachments.models import Attachment
+from app.attachments.models import Attachment, AttachmentRead
 from app.car.service import (
     recalculate_current_mileage,
     validate_mileage_consistency,
 )
 from app.currency.service import get_rate
-from app.maintenance.models import ServiceEntry
-from app.maintenance.schemas import AttachmentRead, ServiceEntryCreate, ServiceEntryRead
+from app.maintenance.models import ServiceEntry, ServiceEntryCreate, ServiceEntryRead
 
 
 def _to_read(entry: ServiceEntry, attachments: list[Attachment]) -> ServiceEntryRead:
+    assert entry.id is not None
     return ServiceEntryRead(
         id=entry.id,
         date=entry.date,
@@ -22,15 +22,13 @@ def _to_read(entry: ServiceEntry, attachments: list[Attachment]) -> ServiceEntry
         exchange_rate=entry.exchange_rate,
         cost_czk=round(entry.cost * entry.exchange_rate, 2),
         notes=entry.notes,
-        attachments=[
-            AttachmentRead(id=a.id, filename=a.filename, content_type=a.content_type)
-            for a in attachments
-        ],
+        attachments=[AttachmentRead.model_validate(a, from_attributes=True) for a in attachments],
     )
 
 
-def _attachments_for(db: Session, entry_id: int) -> list[Attachment]:
-    return db.exec(select(Attachment).where(Attachment.service_entry_id == entry_id)).all()
+def _attachments_for(db: Session, entry: ServiceEntry) -> list[Attachment]:
+    assert entry.id is not None
+    return list(db.exec(select(Attachment).where(Attachment.service_entry_id == entry.id)).all())
 
 
 def create_entry(db: Session, data: ServiceEntryCreate) -> ServiceEntryRead:
@@ -55,6 +53,7 @@ def create_entry(db: Session, data: ServiceEntryCreate) -> ServiceEntryRead:
 
 
 def update_entry(db: Session, entry: ServiceEntry, data: ServiceEntryCreate) -> ServiceEntryRead:
+    assert entry.id is not None
     validate_mileage_consistency(db, data.date, data.mileage_km, exclude_service_id=entry.id)
     exchange_rate = get_rate(db, data.currency)
 
@@ -72,7 +71,7 @@ def update_entry(db: Session, entry: ServiceEntry, data: ServiceEntryCreate) -> 
     db.refresh(entry)
     recalculate_current_mileage(db)
 
-    return _to_read(entry, _attachments_for(db, entry.id))
+    return _to_read(entry, _attachments_for(db, entry))
 
 
 def delete_entry(db: Session, entry: ServiceEntry) -> None:
@@ -82,5 +81,5 @@ def delete_entry(db: Session, entry: ServiceEntry) -> None:
 
 
 def list_entries(db: Session) -> list[ServiceEntryRead]:
-    entries = db.exec(select(ServiceEntry).order_by(ServiceEntry.date.desc())).all()
-    return [_to_read(entry, _attachments_for(db, entry.id)) for entry in entries]
+    entries = db.exec(select(ServiceEntry).order_by(col(ServiceEntry.date).desc())).all()
+    return [_to_read(entry, _attachments_for(db, entry)) for entry in entries]

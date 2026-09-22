@@ -4,8 +4,7 @@ from sqlmodel import Session
 from app.core.database import get_db
 from app.core.security import CurrentUser
 from app.maintenance import service
-from app.maintenance.models import ServiceEntry
-from app.maintenance.schemas import ServiceEntryCreate, ServiceEntryRead
+from app.maintenance.models import ServiceEntry, ServiceEntryCreate, ServiceEntryRead
 
 router = APIRouter(prefix="/service-entries", tags=["maintenance"])
 
@@ -41,9 +40,7 @@ def update_service_entry(
 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_service_entry(
-    entry_id: int, user: CurrentUser, db: Session = Depends(get_db)
-) -> None:
+def delete_service_entry(entry_id: int, user: CurrentUser, db: Session = Depends(get_db)) -> None:
     entry = db.get(ServiceEntry, entry_id)
     if entry is None:
         raise HTTPException(status_code=404, detail="Service entry not found")

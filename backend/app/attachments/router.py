@@ -3,11 +3,10 @@ from fastapi.responses import FileResponse
 from sqlmodel import Session
 
 from app.attachments import storage
-from app.attachments.models import Attachment
+from app.attachments.models import Attachment, AttachmentRead
 from app.core.database import get_db
 from app.core.security import CurrentUser
 from app.maintenance.models import ServiceEntry
-from app.maintenance.schemas import AttachmentRead
 
 router = APIRouter(tags=["attachments"])
 
@@ -51,9 +50,7 @@ def download_attachment(
 
 
 @router.delete("/attachments/{attachment_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_attachment(
-    attachment_id: int, user: CurrentUser, db: Session = Depends(get_db)
-) -> None:
+def delete_attachment(attachment_id: int, user: CurrentUser, db: Session = Depends(get_db)) -> None:
     attachment = db.get(Attachment, attachment_id)
     if attachment is None:
         raise HTTPException(status_code=404, detail="Attachment not found")
