@@ -3,8 +3,7 @@ from fastapi import APIRouter, HTTPException, status
 from app.core.database import DbSession
 from app.core.security import CurrentUser
 from app.fuel import service
-from app.fuel.models import FuelEntry
-from app.fuel.schemas import FuelEntryCreate, FuelEntryRead
+from app.fuel.models import FuelEntry, FuelEntryCreate, FuelEntryRead
 
 router = APIRouter(prefix="/fuel-entries", tags=["fuel"])
 

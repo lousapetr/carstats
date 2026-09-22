@@ -1,16 +1,18 @@
-from sqlmodel import Session, select
+from collections.abc import Sequence
+
+from sqlmodel import Session, col, select
 
 from app.car.service import (
     recalculate_current_mileage,
     validate_mileage_consistency,
 )
 from app.currency.service import get_rate
-from app.fuel.models import FuelEntry
-from app.fuel.schemas import FuelEntryCreate, FuelEntryRead
+from app.fuel.models import FuelEntry, FuelEntryCreate, FuelEntryRead
 
 
 def _to_read(entry: FuelEntry, consumption_l_per_100km: float | None) -> FuelEntryRead:
     price_total = round(entry.liters * entry.price_per_liter, 2)
+    assert entry.id is not None
     return FuelEntryRead(
         id=entry.id,
         date=entry.date,
@@ -28,7 +30,7 @@ def _to_read(entry: FuelEntry, consumption_l_per_100km: float | None) -> FuelEnt
     )
 
 
-def _compute_consumptions(entries_oldest_first: list[FuelEntry]) -> dict[int, float | None]:
+def _compute_consumptions(entries_oldest_first: Sequence[FuelEntry]) -> dict[int, float | None]:
     """Full-to-full accounting: consumption is only emitted on full-tank
     entries, as the liters bought since the previous full-tank entry
     (including this one) divided by the mileage delta between those two
@@ -40,6 +42,7 @@ def _compute_consumptions(entries_oldest_first: list[FuelEntry]) -> dict[int, fl
     last_full: FuelEntry | None = None
     running_liters = 0.0
     for entry in entries_oldest_first:
+        assert entry.id is not None
         running_liters += entry.liters
         if not entry.full_tank:
             consumptions[entry.id] = None
@@ -53,8 +56,13 @@ def _compute_consumptions(entries_oldest_first: list[FuelEntry]) -> dict[int, fl
     return consumptions
 
 
+def _entries_oldest_first(db: Session) -> Sequence[FuelEntry]:
+    return db.exec(select(FuelEntry).order_by(col(FuelEntry.mileage_km))).all()
+
+
 def _consumption_for_entry(db: Session, entry: FuelEntry) -> float | None:
-    entries = db.exec(select(FuelEntry).order_by(FuelEntry.mileage_km)).all()
+    assert entry.id is not None
+    entries = _entries_oldest_first(db)
     return _compute_consumptions(entries).get(entry.id)
 
 
@@ -111,8 +119,11 @@ def list_entries_with_stats(db: Session) -> list[FuelEntryRead]:
     """Fuel entries ordered oldest-first, each annotated with derived
     price/liter and full-to-full consumption (see `_compute_consumptions`).
     """
-    entries = db.exec(select(FuelEntry).order_by(FuelEntry.mileage_km)).all()
+    entries = _entries_oldest_first(db)
     consumptions = _compute_consumptions(entries)
-    results = [_to_read(entry, consumptions[entry.id]) for entry in entries]
+    results: list[FuelEntryRead] = []
+    for entry in entries:
+        assert entry.id is not None
+        results.append(_to_read(entry, consumptions[entry.id]))
     # Return newest-first for display.
     return list(reversed(results))
