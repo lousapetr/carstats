@@ -3,7 +3,7 @@ import io
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from sqlmodel import select
+from sqlmodel import col, select
 
 from app.core.database import DbSession
 from app.core.security import CurrentUser
@@ -27,7 +27,7 @@ def _csv_response(rows: list[list[str]], header: list[str], filename: str) -> St
 
 @router.get("/fuel.csv")
 def export_fuel_csv(user: CurrentUser, db: DbSession) -> StreamingResponse:
-    entries = db.exec(select(FuelEntry).order_by(FuelEntry.date)).all()
+    entries = db.exec(select(FuelEntry).order_by(col(FuelEntry.date))).all()
     rows = [
         [
             str(e.date),
@@ -56,7 +56,7 @@ def export_fuel_csv(user: CurrentUser, db: DbSession) -> StreamingResponse:
 
 @router.get("/maintenance.csv")
 def export_maintenance_csv(user: CurrentUser, db: DbSession) -> StreamingResponse:
-    entries = db.exec(select(ServiceEntry).order_by(ServiceEntry.date)).all()
+    entries = db.exec(select(ServiceEntry).order_by(col(ServiceEntry.date))).all()
     rows = [
         [
             str(e.date),

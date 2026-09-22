@@ -2,6 +2,7 @@ from datetime import date
 
 from sqlmodel import Session, select
 
+from app.car.models import CarProfileRead
 from app.car.service import get_or_create_profile
 from app.dashboard.schemas import CostBreakdown, DashboardSummary, FuelTrendPoint, TimelineItem
 from app.fuel.models import FuelEntry
@@ -57,9 +58,7 @@ def get_summary(db: Session) -> DashboardSummary:
     if all_mileages:
         distance_driven = profile.current_mileage_km - min(all_mileages)
         if distance_driven > 0:
-            cost_per_km = round(
-                (total_fuel_cost + total_maintenance_cost) / distance_driven, 2
-            )
+            cost_per_km = round((total_fuel_cost + total_maintenance_cost) / distance_driven, 2)
 
     consumptions = [
         e.consumption_l_per_100km
@@ -88,13 +87,7 @@ def get_summary(db: Session) -> DashboardSummary:
     timeline.sort(key=lambda item: item.date, reverse=True)
 
     return DashboardSummary(
-        car={
-            "name": profile.name,
-            "make": profile.make,
-            "model": profile.model,
-            "year": profile.year,
-            "current_mileage_km": profile.current_mileage_km,
-        },
+        car=CarProfileRead.model_validate(profile, from_attributes=True),
         total_fuel_cost=round(total_fuel_cost, 2),
         total_fuel_liters=round(total_fuel_liters, 2),
         total_fuel_entries=len(fuel_entries),

@@ -3,15 +3,8 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from app.car.models import CarProfileRead
 from app.reminders.models import ReminderRead
-
-
-class CarSummary(BaseModel):
-    name: str
-    make: str
-    model: str
-    year: int | None
-    current_mileage_km: float
 
 
 class TimelineItem(BaseModel):
@@ -26,7 +19,7 @@ class DashboardSummary(BaseModel):
     currency each entry was logged in — the dashboard is always shown in Kč.
     """
 
-    car: CarSummary
+    car: CarProfileRead
     total_fuel_cost: float
     total_fuel_liters: float
     total_fuel_entries: int

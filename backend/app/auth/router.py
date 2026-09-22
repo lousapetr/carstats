@@ -33,7 +33,7 @@ async def callback(request: Request) -> RedirectResponse:
 
 
 @router.get("/me")
-def me(request: Request) -> dict:
+def me(request: Request) -> dict[str, str]:
     email = request.session.get("user_email")
     if not email:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
@@ -41,6 +41,6 @@ def me(request: Request) -> dict:
 
 
 @router.post("/logout")
-def logout(request: Request) -> dict:
+def logout(request: Request) -> dict[str, bool]:
     request.session.clear()
     return {"ok": True}
