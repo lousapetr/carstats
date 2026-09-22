@@ -6,15 +6,19 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine
 
+# Settings refuses to construct without a session secret and the app imports
+# below construct it, so this has to run before them.
+os.environ.setdefault("CARSTATS_SESSION_SECRET", "test-" + "x" * 40)
+
 # Import every model module so SQLModel.metadata is fully populated.
-from app.attachments import models as _attachments_models  # noqa: F401
-from app.car import models as _car_models  # noqa: F401
-from app.core.database import get_db
-from app.core.security import get_current_user_email
-from app.currency import models as _currency_models  # noqa: F401
-from app.fuel import models as _fuel_models  # noqa: F401
-from app.maintenance import models as _maintenance_models  # noqa: F401
-from app.reminders import models as _reminders_models  # noqa: F401
+from app.attachments import models as _attachments_models  # noqa: E402, F401
+from app.car import models as _car_models  # noqa: E402, F401
+from app.core.database import get_db  # noqa: E402
+from app.core.security import get_current_user_email  # noqa: E402
+from app.currency import models as _currency_models  # noqa: E402, F401
+from app.fuel import models as _fuel_models  # noqa: E402, F401
+from app.maintenance import models as _maintenance_models  # noqa: E402, F401
+from app.reminders import models as _reminders_models  # noqa: E402, F401
 
 # Every test that resolves a non-CZK exchange rate would otherwise trigger a
 # real network call to the ČNB (see currency/service.py::_ensure_rates_fresh)

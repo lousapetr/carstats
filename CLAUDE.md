@@ -21,7 +21,7 @@ gated behind Google OAuth restricted to a single allowed email (`CARSTATS_ALLOWE
 
 ```bash
 uv sync                          # install deps
-cp .env.example .env             # fill in CARSTATS_ALLOWED_EMAIL at minimum
+cp .env.example .env             # CARSTATS_SESSION_SECRET + CARSTATS_ALLOWED_EMAIL required
 uv run alembic upgrade head      # apply migrations (required before first run)
 uv run uvicorn app.main:app --reload   # serve on :8000, docs at /docs
 
@@ -95,6 +95,12 @@ Server-side session cookie only (Starlette `SessionMiddleware`, no JWT/localStor
 `/auth/login` → Google OAuth → `/auth/callback` checks the returned email against
 `ALLOWED_EMAIL` (case-insensitive, fails closed if unset) and sets the session. The
 `CurrentUser` dependency (`core/security.py`) gates every `/api/*` route.
+
+`Settings` refuses to construct unless `CARSTATS_SESSION_SECRET` is at least
+`MIN_SESSION_SECRET_LENGTH` characters (`core/config.py`), so a missing or placeholder
+secret crashes the app at import instead of letting anyone forge a signed session cookie.
+Because every app import constructs `Settings`, `tests/conftest.py` sets a secret in
+`os.environ` *above* its `from app…` imports — keep that ordering.
 
 ### Single deploy artifact: FastAPI serves the built SPA
 

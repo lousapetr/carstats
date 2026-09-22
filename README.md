@@ -13,8 +13,9 @@ allowed email.
 ```bash
 cd backend
 uv sync
-# cp .env.example .env   # fill in ALLOWED_EMAIL at minimum; Google OAuth creds
-                        # aren't needed to exercise most of the API locally
+cp .env.example .env     # SESSION_SECRET (`openssl rand -hex 32`) and ALLOWED_EMAIL
+                         # are required; Google OAuth creds aren't needed to
+                         # exercise most of the API locally
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
 ```
@@ -94,7 +95,9 @@ Cloudflare Tunnel for public HTTPS access without opening any ports.
    `CARSTATS_OAUTH_REDIRECT_URL` (the tunnel hostname from step 5),
    `CARSTATS_ALLOWED_EMAIL` (your Google account email), and
    `CLOUDFLARE_TUNNEL_TOKEN` from step 5. Generate `CARSTATS_SESSION_SECRET`
-   with e.g. `openssl rand -hex 32`.
+   with `openssl rand -hex 32` — the app refuses to start if it is missing or
+   shorter than 32 characters, so a deploy can never silently fall back to a
+   guessable session key.
 7. **Deploy**: `./deploy.sh`
 
 ### Subsequent deploys

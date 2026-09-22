@@ -21,8 +21,14 @@ passing. Findings are ordered by severity.
 
 ### CRITICAL
 
-**1. Session secret silently falls back to a hardcoded default → full auth bypass**
+**1. ~~Session secret silently falls back to a hardcoded default → full auth bypass~~ — FIXED**
 `backend/app/core/config.py:9`, used at `backend/app/main.py:21`
+
+Fixed 2026-09-22: the default is now `""` and a `model_validator` rejects anything shorter
+than `MIN_SESSION_SECRET_LENGTH` (32), so the app — and `alembic upgrade head` in
+`docker/entrypoint.sh` — crashes at import rather than booting with a guessable key.
+`.env.example` ships an empty value, `tests/conftest.py` sets a test secret before its
+`from app…` imports, and `tests/test_auth.py` pins missing/empty/short rejection.
 
 If `CARSTATS_SESSION_SECRET` is missing from the environment, `Settings` quietly uses
 `"dev-secret-change-me"` and the app boots normally. Anyone who knows that value (it is in
@@ -412,9 +418,9 @@ stays offline. The gaps line up with the bugs above, which is why they survived:
   of an oversized upload and of a disallowed content type (finding 5).
 - No test asserts a 422 body shape or that a rejected create leaves no row behind
   (finding 8).
-- `tests/test_auth.py` exercises `is_email_allowed` both ways but nothing pins the
-  session-secret requirement. Once finding 1 lands, add a test that constructing `Settings`
-  without `CARSTATS_SESSION_SECRET` raises.
+- ~~`tests/test_auth.py` exercises `is_email_allowed` both ways but nothing pins the
+  session-secret requirement.~~ Done — `test_settings_rejects_missing_session_secret` and
+  `test_settings_rejects_weak_session_secret` cover it.
 - No frontend test runner is configured, so findings 7, 8, 13 and 14 are unverifiable in
   CI. Not worth standing up Vitest for this app on its own, but worth knowing that the
   entire client is manual-test-only.
