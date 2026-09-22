@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlmodel import Session
 
 from app.attachments import storage
 from app.attachments.models import Attachment, AttachmentRead
-from app.core.database import get_db
+from app.core.database import DbSession
 from app.core.security import CurrentUser
 from app.maintenance.models import ServiceEntry
 
@@ -17,7 +16,7 @@ router = APIRouter(tags=["attachments"])
     status_code=status.HTTP_201_CREATED,
 )
 async def upload_attachment(
-    entry_id: int, file: UploadFile, user: CurrentUser, db: Session = Depends(get_db)
+    entry_id: int, file: UploadFile, user: CurrentUser, db: DbSession
 ) -> Attachment:
     entry = db.get(ServiceEntry, entry_id)
     if entry is None:
@@ -37,9 +36,7 @@ async def upload_attachment(
 
 
 @router.get("/attachments/{attachment_id}/download")
-def download_attachment(
-    attachment_id: int, user: CurrentUser, db: Session = Depends(get_db)
-) -> FileResponse:
+def download_attachment(attachment_id: int, user: CurrentUser, db: DbSession) -> FileResponse:
     attachment = db.get(Attachment, attachment_id)
     if attachment is None:
         raise HTTPException(status_code=404, detail="Attachment not found")
@@ -50,7 +47,7 @@ def download_attachment(
 
 
 @router.delete("/attachments/{attachment_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_attachment(attachment_id: int, user: CurrentUser, db: Session = Depends(get_db)) -> None:
+def delete_attachment(attachment_id: int, user: CurrentUser, db: DbSession) -> None:
     attachment = db.get(Attachment, attachment_id)
     if attachment is None:
         raise HTTPException(status_code=404, detail="Attachment not found")

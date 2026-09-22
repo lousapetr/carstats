@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session
+from fastapi import APIRouter, HTTPException, status
 
-from app.core.database import get_db
+from app.core.database import DbSession
 from app.core.security import CurrentUser
 from app.maintenance import service
 from app.maintenance.models import ServiceEntry, ServiceEntryCreate, ServiceEntryRead
@@ -10,15 +9,13 @@ router = APIRouter(prefix="/service-entries", tags=["maintenance"])
 
 
 @router.get("", response_model=list[ServiceEntryRead])
-def list_service_entries(
-    user: CurrentUser, db: Session = Depends(get_db)
-) -> list[ServiceEntryRead]:
+def list_service_entries(user: CurrentUser, db: DbSession) -> list[ServiceEntryRead]:
     return service.list_entries(db)
 
 
 @router.post("", response_model=ServiceEntryRead, status_code=status.HTTP_201_CREATED)
 def create_service_entry(
-    data: ServiceEntryCreate, user: CurrentUser, db: Session = Depends(get_db)
+    data: ServiceEntryCreate, user: CurrentUser, db: DbSession
 ) -> ServiceEntryRead:
     try:
         return service.create_entry(db, data)
@@ -28,7 +25,7 @@ def create_service_entry(
 
 @router.put("/{entry_id}", response_model=ServiceEntryRead)
 def update_service_entry(
-    entry_id: int, data: ServiceEntryCreate, user: CurrentUser, db: Session = Depends(get_db)
+    entry_id: int, data: ServiceEntryCreate, user: CurrentUser, db: DbSession
 ) -> ServiceEntryRead:
     entry = db.get(ServiceEntry, entry_id)
     if entry is None:
@@ -40,7 +37,7 @@ def update_service_entry(
 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_service_entry(entry_id: int, user: CurrentUser, db: Session = Depends(get_db)) -> None:
+def delete_service_entry(entry_id: int, user: CurrentUser, db: DbSession) -> None:
     entry = db.get(ServiceEntry, entry_id)
     if entry is None:
         raise HTTPException(status_code=404, detail="Service entry not found")

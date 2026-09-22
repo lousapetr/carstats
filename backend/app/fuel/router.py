@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session
+from fastapi import APIRouter, HTTPException, status
 
-from app.core.database import get_db
+from app.core.database import DbSession
 from app.core.security import CurrentUser
 from app.fuel import service
 from app.fuel.models import FuelEntry
@@ -11,14 +10,12 @@ router = APIRouter(prefix="/fuel-entries", tags=["fuel"])
 
 
 @router.get("", response_model=list[FuelEntryRead])
-def list_fuel_entries(user: CurrentUser, db: Session = Depends(get_db)) -> list[FuelEntryRead]:
+def list_fuel_entries(user: CurrentUser, db: DbSession) -> list[FuelEntryRead]:
     return service.list_entries_with_stats(db)
 
 
 @router.post("", response_model=FuelEntryRead, status_code=status.HTTP_201_CREATED)
-def create_fuel_entry(
-    data: FuelEntryCreate, user: CurrentUser, db: Session = Depends(get_db)
-) -> FuelEntryRead:
+def create_fuel_entry(data: FuelEntryCreate, user: CurrentUser, db: DbSession) -> FuelEntryRead:
     try:
         return service.create_entry(db, data)
     except ValueError as exc:
@@ -27,7 +24,7 @@ def create_fuel_entry(
 
 @router.put("/{entry_id}", response_model=FuelEntryRead)
 def update_fuel_entry(
-    entry_id: int, data: FuelEntryCreate, user: CurrentUser, db: Session = Depends(get_db)
+    entry_id: int, data: FuelEntryCreate, user: CurrentUser, db: DbSession
 ) -> FuelEntryRead:
     entry = db.get(FuelEntry, entry_id)
     if entry is None:
@@ -39,7 +36,7 @@ def update_fuel_entry(
 
 
 @router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_fuel_entry(entry_id: int, user: CurrentUser, db: Session = Depends(get_db)) -> None:
+def delete_fuel_entry(entry_id: int, user: CurrentUser, db: DbSession) -> None:
     entry = db.get(FuelEntry, entry_id)
     if entry is None:
         raise HTTPException(status_code=404, detail="Fuel entry not found")
