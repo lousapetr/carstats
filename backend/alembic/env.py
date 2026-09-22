@@ -1,3 +1,6 @@
+# The model modules below are imported purely for their table-registration side
+# effect, so every import in this file reads as unused.
+# pyright: reportUnusedImport=false
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool

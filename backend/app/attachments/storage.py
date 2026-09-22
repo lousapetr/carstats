@@ -17,7 +17,7 @@ def save_file(service_entry_id: int, upload: UploadFile) -> tuple[str, str, str]
     safe_name = Path(upload.filename or "file").name
     stored_name = f"{uuid.uuid4().hex}_{safe_name}"
     dest = entry_dir / stored_name
-    dest.write_bytes(upload.file.read())
+    _ = dest.write_bytes(upload.file.read())
 
     relative_path = f"{service_entry_id}/{stored_name}"
     return relative_path, safe_name, upload.content_type or "application/octet-stream"
