@@ -110,6 +110,13 @@ secret crashes the app at import instead of letting anyone forge a signed sessio
 Because every app import constructs `Settings`, `tests/conftest.py` sets a secret in
 `os.environ` *above* its `from app…` imports — keep that ordering.
 
+The cookie is `same_site="lax"`, `httponly`, capped at `SESSION_MAX_AGE_SECONDS` (30 days)
+and `Secure` per `settings.session_cookie_secure`. That flag has no fixed default: it
+follows the scheme of `CARSTATS_OAUTH_REDIRECT_URL` (https in production behind the tunnel,
+http for local dev where a Secure cookie would never come back), and
+`CARSTATS_COOKIE_SECURE` overrides it explicitly. `same_site="lax"` is the only CSRF
+defence in the app — there is no CSRF token — so don't loosen it to `none`.
+
 ### Single deploy artifact: FastAPI serves the built SPA
 
 `main.py`'s catch-all route serves real files from the Vite build (`favicon.svg`,

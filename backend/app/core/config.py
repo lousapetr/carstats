@@ -21,9 +21,19 @@ class Settings(BaseSettings):
 
     allowed_email: str = ""
 
+    # Unset, the Secure flag follows oauth_redirect_url's scheme: https in
+    # production, http for local dev where a Secure cookie never comes back.
+    cookie_secure: bool | None = None
+
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_file=".env", env_prefix="CARSTATS_"
     )
+
+    @property
+    def session_cookie_secure(self) -> bool:
+        if self.cookie_secure is not None:
+            return self.cookie_secure
+        return self.oauth_redirect_url.lower().startswith("https://")
 
     @model_validator(mode="after")
     def _require_session_secret(self) -> "Settings":

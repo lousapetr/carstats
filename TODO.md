@@ -67,8 +67,16 @@ copy-paste `.env` fails loudly rather than running insecurely.
 
 ### WARNING
 
-**2. Session cookie is missing the `Secure` flag**
+**2. ~~Session cookie is missing the `Secure` flag~~ — FIXED**
 `backend/app/main.py:21`
+
+Fixed 2026-09-22: the middleware now sets `https_only=settings.session_cookie_secure` and
+`max_age=SESSION_MAX_AGE_SECONDS` (30 days). `cookie_secure` has no fixed default — it
+follows the scheme of `CARSTATS_OAUTH_REDIRECT_URL`, so production behind the https tunnel
+gets `Secure` automatically while local dev on `http://localhost:8000` still works;
+`CARSTATS_COOKIE_SECURE` overrides it. `tests/test_auth.py` pins both the scheme-derived
+default and the flags on a real `Set-Cookie`. No CSRF token was added, so `same_site="lax"`
+is still the only CSRF defence.
 
 `SessionMiddleware(..., same_site="lax")` sets no `https_only`, so the cookie is sent over
 plain HTTP too. The deployment is HTTPS-only via the Cloudflare tunnel, so this is

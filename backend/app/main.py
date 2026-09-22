@@ -17,8 +17,16 @@ from app.fuel.router import router as fuel_router
 from app.maintenance.router import router as maintenance_router
 from app.reminders.router import router as reminders_router
 
+SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
+
 app = FastAPI(title="CarStats")
-app.add_middleware(SessionMiddleware, secret_key=settings.session_secret, same_site="lax")
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.session_secret,
+    same_site="lax",
+    https_only=settings.session_cookie_secure,
+    max_age=SESSION_MAX_AGE_SECONDS,
+)
 
 app.include_router(auth_router)
 app.include_router(car_router, prefix="/api")

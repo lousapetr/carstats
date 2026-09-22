@@ -97,7 +97,9 @@ Cloudflare Tunnel for public HTTPS access without opening any ports.
    `CLOUDFLARE_TUNNEL_TOKEN` from step 5. Generate `CARSTATS_SESSION_SECRET`
    with `openssl rand -hex 32` — the app refuses to start if it is missing or
    shorter than 32 characters, so a deploy can never silently fall back to a
-   guessable session key.
+   guessable session key. Leave `CARSTATS_COOKIE_SECURE` commented out: the
+   session cookie then takes its `Secure` flag from the https redirect URL you
+   just set.
 7. **Deploy**: `./deploy.sh`
 
 ### Subsequent deploys
