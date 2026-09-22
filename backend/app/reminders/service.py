@@ -1,10 +1,9 @@
 from datetime import UTC, date, datetime
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.car.service import get_or_create_profile
-from app.reminders.models import Reminder
-from app.reminders.schemas import ReminderCreate, ReminderRead, ReminderStatus
+from app.reminders.models import Reminder, ReminderCreate, ReminderRead, ReminderStatus
 
 DUE_SOON_DAYS = 14
 DUE_SOON_KM = 500
@@ -37,6 +36,7 @@ _STATUS_RANK = {"overdue": 0, "due_soon": 1, "ok": 2}
 
 
 def _to_read(reminder: Reminder, current_mileage_km: float, today: date) -> ReminderRead:
+    assert reminder.id is not None
     return ReminderRead(
         id=reminder.id,
         title=reminder.title,
@@ -53,7 +53,7 @@ def _to_read(reminder: Reminder, current_mileage_km: float, today: date) -> Remi
 def list_active_reminders(db: Session) -> list[ReminderRead]:
     current_mileage_km = get_or_create_profile(db).current_mileage_km
     today = date.today()
-    reminders = db.exec(select(Reminder).where(Reminder.completed_at.is_(None))).all()
+    reminders = db.exec(select(Reminder).where(col(Reminder.completed_at).is_(None))).all()
     reads = [_to_read(r, current_mileage_km, today) for r in reminders]
     reads.sort(key=lambda r: _STATUS_RANK[r.status])
     return reads

@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from app.reminders.schemas import ReminderRead
+from app.reminders.models import ReminderRead
 
 
 class CarSummary(BaseModel):

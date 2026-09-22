@@ -4,8 +4,7 @@ from sqlmodel import Session
 from app.core.database import DbSession
 from app.core.security import CurrentUser
 from app.reminders import service
-from app.reminders.models import Reminder
-from app.reminders.schemas import ReminderCreate, ReminderRead
+from app.reminders.models import Reminder, ReminderCreate, ReminderRead
 
 router = APIRouter(prefix="/reminders", tags=["reminders"])
 

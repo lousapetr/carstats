@@ -1,10 +1,12 @@
 from datetime import UTC, date, datetime
+from typing import Literal
 
 from sqlmodel import Field, SQLModel
 
+ReminderStatus = Literal["ok", "due_soon", "overdue"]
 
-class Reminder(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+
+class ReminderBase(SQLModel):
     title: str
     notes: str | None = None
 
@@ -16,5 +18,18 @@ class Reminder(SQLModel, table=True):
     recurrence_days: int | None = None
     recurrence_km: float | None = None
 
+
+class Reminder(ReminderBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
     completed_at: datetime | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
+class ReminderCreate(ReminderBase):
+    pass
+
+
+class ReminderRead(ReminderBase):
+    id: int
+    completed_at: datetime | None
+    status: ReminderStatus
