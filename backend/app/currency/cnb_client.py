@@ -10,7 +10,7 @@ CNB_DAILY_RATES_URL = (
 
 def fetch_daily_text() -> str:
     response = httpx.get(CNB_DAILY_RATES_URL, timeout=10.0)
-    response.raise_for_status()
+    _ = response.raise_for_status()
     return response.text
 
 

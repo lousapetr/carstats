@@ -61,7 +61,7 @@ def validate_mileage_consistency(
     if before and mileage_km < max(before):
         raise ValueError(
             f"Stav tachometru ({mileage_km:g} km) je nižší než předchozí záznam "
-            f"({max(before):g} km)"
+            + f"({max(before):g} km)"
         )
     if after and mileage_km > min(after):
         raise ValueError(
