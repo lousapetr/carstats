@@ -6,6 +6,13 @@ Do NOT add comments to fixed code explaining why the
 original code was incorrect. Only ever comment on active things
 that are hard to get from context.
 
+The repo root carries untracked dotfiles that are not part of CarStats (`.bashrc`,
+`.zshrc`, `.gitconfig`, `.idea`, `.mcp.json`, several `.claude/` subdirectories). They are
+environment leftovers — never stage them; stage only the files you actually changed, and
+don't bother reporting them as pending work.
+
+Commit directly to main branch.
+
 ## Project overview
 
 CarStats is a personal single-user car logging app: fuel fill-ups, maintenance/service
