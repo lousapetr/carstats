@@ -32,8 +32,16 @@ DEFAULT_RATES_TO_CZK: dict[Currency, float] = {
 }
 
 
-class CurrencyRate(SQLModel, table=True):
+class CurrencyRateBase(SQLModel):
+    currency: Currency
+    rate_to_czk: float
+
+
+class CurrencyRate(CurrencyRateBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     currency: Currency = Field(unique=True)
-    rate_to_czk: float
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
+class CurrencyRateRead(CurrencyRateBase):
+    pass

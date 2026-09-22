@@ -1,8 +1,7 @@
 from fastapi import APIRouter
 
 from app.car import service
-from app.car.models import CarProfile
-from app.car.schemas import CarProfileRead, CarProfileUpdate
+from app.car.models import CarProfile, CarProfileRead, CarProfileUpdate
 from app.core.database import DbSession
 from app.core.security import CurrentUser
 

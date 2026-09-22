@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.currency import cnb_client
 from app.currency.models import DEFAULT_RATES_TO_CZK, Currency, CurrencyRate
@@ -32,7 +32,7 @@ def _ensure_rates_fresh(db: Session) -> None:
     cached fetch instead of hitting the network per entry (or on a fixed
     schedule regardless of whether the app is even used that day).
     """
-    latest = db.exec(select(CurrencyRate).order_by(CurrencyRate.updated_at.desc())).first()
+    latest = db.exec(select(CurrencyRate).order_by(col(CurrencyRate.updated_at).desc())).first()
     if latest is not None and latest.updated_at.date() >= datetime.now(UTC).date():
         return
     try:
@@ -48,7 +48,7 @@ def list_rates(db: Session) -> list[CurrencyRate]:
     _ensure_rates_fresh(db)
     for currency in DEFAULT_RATES_TO_CZK:
         _get_or_seed_row(db, currency)
-    return db.exec(select(CurrencyRate).order_by(CurrencyRate.currency)).all()
+    return list(db.exec(select(CurrencyRate).order_by(CurrencyRate.currency)).all())
 
 
 def get_rate(db: Session, currency: Currency) -> float:
