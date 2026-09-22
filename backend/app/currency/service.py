@@ -41,13 +41,13 @@ def _ensure_rates_fresh(db: Session) -> None:
         return  # keep whatever we have (seeded defaults or a previous day's cache)
     for currency, rate in rates.items():
         if currency in DEFAULT_RATES_TO_CZK:
-            update_rate(db, currency, rate)
+            _ = update_rate(db, currency, rate)
 
 
 def list_rates(db: Session) -> list[CurrencyRate]:
     _ensure_rates_fresh(db)
     for currency in DEFAULT_RATES_TO_CZK:
-        _get_or_seed_row(db, currency)
+        _ = _get_or_seed_row(db, currency)
     return list(db.exec(select(CurrencyRate).order_by(CurrencyRate.currency)).all())
 
 

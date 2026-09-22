@@ -15,6 +15,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "basedpyright>=1.40",
     "pip",
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
@@ -38,4 +39,4 @@ asyncio_mode = "auto"
 # Paths are relative to this file, so backend/ is the import root (`import app...`).
 venvPath = "."
 venv = ".venv"
-ignore = ["tests"]
+ignore = ["tests", "alembic/versions"]

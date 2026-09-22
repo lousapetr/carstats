@@ -38,6 +38,7 @@ uv run pytest tests/test_fuel.py::test_create_fuel_entry_updates_car_mileage  # 
 uv run pytest -k mileage         # by keyword
 
 uv run ruff check .              # lint
+uv run basedpyright              # type check (app/ only; tests + generated migrations ignored)
 uv run alembic revision --autogenerate -m "message"  # new migration
 ```
 
