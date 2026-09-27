@@ -40,8 +40,9 @@ def _service_label(entry: ServiceEntry) -> str:
 def _avg_consumption(intervals: Sequence[FullToFullInterval]) -> float | None:
     """Litres burned per 100 km over the given full-to-full intervals.
 
-    Distance-weighted by construction — total litres over total distance — so a
-    short top-up can't pull the figure around as much as a long tank.
+    Totals first, divide once — so a short top-up can't pull the figure around
+    as much as a long tank. Averaging each interval's own
+    `consumption_l_per_100km` would weight them equally instead.
     """
     total_km = sum(i.distance_km for i in intervals)
     if total_km <= 0:

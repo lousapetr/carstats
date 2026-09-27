@@ -46,6 +46,13 @@ class FullToFullInterval:
     liters: float
     distance_km: float
 
+    @property
+    def consumption_l_per_100km(self) -> float:
+        """Never None and never dividing by zero: an interval is only built
+        once both ends are known and the mileage actually advanced.
+        """
+        return round(self.liters / self.distance_km * 100, 2)
+
 
 def full_to_full_intervals(entries: Sequence[FuelEntry]) -> list[FullToFullInterval]:
     """Full-to-full accounting: a measurable interval runs from one full-tank
@@ -89,9 +96,7 @@ def _compute_consumptions(entries: Sequence[FuelEntry]) -> dict[int, float | Non
         assert entry.id is not None
         consumptions[entry.id] = None
     for interval in full_to_full_intervals(entries):
-        consumptions[interval.closing_entry_id] = round(
-            interval.liters / interval.distance_km * 100, 2
-        )
+        consumptions[interval.closing_entry_id] = interval.consumption_l_per_100km
     return consumptions
 
 
