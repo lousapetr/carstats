@@ -1,5 +1,6 @@
 import io
 
+from app.attachments import storage
 from app.core.config import settings
 
 
@@ -51,3 +52,31 @@ def test_delete_attachment_removes_file_and_record(client, monkeypatch, tmp_path
     response = client.delete(f"/api/attachments/{attachment['id']}")
     assert response.status_code == 204
     assert client.get(f"/api/attachments/{attachment['id']}/download").status_code == 404
+
+
+def test_upload_rejects_disallowed_content_type(client, monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "uploads_dir", str(tmp_path))
+    entry = _create_service_entry(client)
+
+    response = client.post(
+        f"/api/service-entries/{entry['id']}/attachments",
+        files={"file": ("notes.txt", io.BytesIO(b"x"), "text/plain")},
+    )
+    assert response.status_code == 400
+    assert "text/plain" in response.json()["detail"]
+    assert client.get("/api/service-entries").json()[0]["attachments"] == []
+
+
+def test_upload_rejects_oversized_file(client, monkeypatch, tmp_path):
+    monkeypatch.setattr(settings, "uploads_dir", str(tmp_path))
+    monkeypatch.setattr(storage, "MAX_UPLOAD_BYTES", 1024)
+    entry = _create_service_entry(client)
+
+    response = client.post(
+        f"/api/service-entries/{entry['id']}/attachments",
+        files={"file": ("big.pdf", io.BytesIO(b"x" * 4096), "application/pdf")},
+    )
+    assert response.status_code == 400
+    assert "velký" in response.json()["detail"]
+    assert client.get("/api/service-entries").json()[0]["attachments"] == []
+    assert list(tmp_path.glob("**/*.pdf")) == []

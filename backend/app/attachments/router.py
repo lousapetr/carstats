@@ -22,7 +22,10 @@ async def upload_attachment(
     if entry is None:
         raise HTTPException(status_code=404, detail="Service entry not found")
 
-    relative_path, filename, content_type = storage.save_file(entry_id, file)
+    try:
+        relative_path, filename, content_type = storage.save_file(entry_id, file)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     attachment = Attachment(
         service_entry_id=entry_id,
         filename=filename,
