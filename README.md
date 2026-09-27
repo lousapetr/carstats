@@ -3,8 +3,8 @@
 A personal car logging app: fuel fill-ups, maintenance/service history (with
 invoice/photo attachments), due-date/due-mileage reminders, and a cost
 dashboard. Backend is FastAPI + SQLModel + SQLite; frontend is React + Vite +
-TypeScript. Access is gated behind Google OAuth, restricted to a single
-allowed email.
+TypeScript. Access is gated behind Google OAuth, restricted to an allowlist
+of Google accounts that all share the same car log.
 
 ## Local development
 
@@ -13,7 +13,7 @@ allowed email.
 ```bash
 cd backend
 uv sync
-cp .env.example .env     # SESSION_SECRET (`openssl rand -hex 32`) and ALLOWED_EMAIL
+cp .env.example .env     # SESSION_SECRET (`openssl rand -hex 32`) and ALLOWED_EMAILS
                          # are required; Google OAuth creds aren't needed to
                          # exercise most of the API locally
 uv run alembic upgrade head
@@ -93,7 +93,8 @@ Cloudflare Tunnel for public HTTPS access without opening any ports.
 6. **Configure secrets**: on the VM, `cp .env.example .env` and fill in
    `CARSTATS_GOOGLE_CLIENT_ID`, `CARSTATS_GOOGLE_CLIENT_SECRET`,
    `CARSTATS_OAUTH_REDIRECT_URL` (the tunnel hostname from step 5),
-   `CARSTATS_ALLOWED_EMAIL` (your Google account email), and
+   `CARSTATS_ALLOWED_EMAILS` (a comma-separated list of the Google accounts
+   allowed to sign in — all of them see and edit the same car log), and
    `CLOUDFLARE_TUNNEL_TOKEN` from step 5. Generate `CARSTATS_SESSION_SECRET`
    with `openssl rand -hex 32` — the app refuses to start if it is missing or
    shorter than 32 characters, so a deploy can never silently fall back to a
@@ -105,9 +106,10 @@ Cloudflare Tunnel for public HTTPS access without opening any ports.
 ### Subsequent deploys
 
 After pushing changes, on the VM: `./deploy.sh` — pulls the latest commit,
-rebuilds the image, and restarts the containers. The SQLite database and
-uploaded files live in the `carstats_data` Docker volume and survive
-redeploys.
+rebuilds the image, and restarts the containers. If a release renames a
+setting, update `.env` first: unknown `CARSTATS_*` variables are rejected, so a
+leftover key stops the app from starting. The SQLite database and uploaded
+files live in the `carstats_data` Docker volume and survive redeploys.
 
 ### Backups
 

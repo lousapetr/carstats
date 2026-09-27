@@ -20,7 +20,8 @@ history (with invoice/photo attachments), due-date/due-mileage reminders, and a 
 dashboard shown in CZK regardless of what currency entries were logged in. Backend is
 FastAPI + SQLModel + SQLite; frontend is React + Vite + TypeScript + Tailwind. The whole
 UI is in Czech (no i18n framework — strings are just written in Czech directly). Access is
-gated behind Google OAuth restricted to a single allowed email (`CARSTATS_ALLOWED_EMAIL`).
+gated behind Google OAuth restricted to an allowlist of emails
+(`CARSTATS_ALLOWED_EMAILS`), all sharing the one dataset.
 
 ## Commands
 
@@ -28,7 +29,7 @@ gated behind Google OAuth restricted to a single allowed email (`CARSTATS_ALLOWE
 
 ```bash
 uv sync                          # install deps
-cp .env.example .env             # CARSTATS_SESSION_SECRET + CARSTATS_ALLOWED_EMAIL required
+cp .env.example .env             # CARSTATS_SESSION_SECRET + CARSTATS_ALLOWED_EMAILS required
 uv run alembic upgrade head      # apply migrations (required before first run)
 uv run uvicorn app.main:app --reload   # serve on :8000, docs at /docs
 
@@ -104,9 +105,16 @@ converting on read.
 ### Auth
 
 Server-side session cookie only (Starlette `SessionMiddleware`, no JWT/localStorage).
-`/auth/login` → Google OAuth → `/auth/callback` checks the returned email against
-`ALLOWED_EMAIL` (case-insensitive, fails closed if unset) and sets the session. The
-`CurrentUser` dependency (`core/security.py`) gates every `/api/*` route.
+`/auth/login` → Google OAuth → `/auth/callback` rejects an email Google reports as
+unverified, then checks it against the `ALLOWED_EMAILS` allowlist before setting the
+session. The `CurrentUser` dependency (`core/security.py`) gates every `/api/*` route.
+
+`CARSTATS_ALLOWED_EMAILS` is a comma-separated string, not a `list[str]` field:
+pydantic-settings JSON-decodes complex-typed fields from the environment and would crash
+at import on `a@x.com,b@y.com`. `Settings.allowed_email_set` does the splitting, stripping
+and lowercasing, so `is_email_allowed()` is a plain membership test that fails closed —
+an unset or separators-only value parses to an empty set. Everyone on the list shares the
+one car and dataset; there is no per-user data partitioning.
 
 `Settings` refuses to construct unless `CARSTATS_SESSION_SECRET` is at least
 `MIN_SESSION_SECRET_LENGTH` characters (`core/config.py`), so a missing or placeholder

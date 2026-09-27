@@ -2,5 +2,5 @@ from app.core.config import settings
 
 
 def is_email_allowed(email: str) -> bool:
-    """Single-user allowlist: fail closed if ALLOWED_EMAIL isn't configured."""
-    return bool(settings.allowed_email) and email.lower() == settings.allowed_email.lower()
+    """Shared allowlist: fails closed, since an unset value parses to an empty set."""
+    return email.lower() in settings.allowed_email_set

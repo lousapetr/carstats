@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     oauth_redirect_url: str = "http://localhost:8000/auth/callback"
 
-    allowed_email: str = ""
+    allowed_emails: str = ""
 
     # Unset, the Secure flag follows oauth_redirect_url's scheme: https in
     # production, http for local dev where a Secure cookie never comes back.
@@ -28,6 +28,15 @@ class Settings(BaseSettings):
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_file=".env", env_prefix="CARSTATS_"
     )
+
+    @property
+    def allowed_email_set(self) -> frozenset[str]:
+        # Kept a plain comma-separated string rather than a list[str] field:
+        # pydantic-settings JSON-decodes complex fields from env and would fail
+        # at import on `a@x.com,b@y.com`.
+        return frozenset(
+            part.strip().lower() for part in self.allowed_emails.split(",") if part.strip()
+        )
 
     @property
     def session_cookie_secure(self) -> bool:
