@@ -135,9 +135,34 @@ Drive.
 Backups land in the `carstats-backups` folder on Drive as
 `carstats-backup-<timestamp>.tar.gz`, containing the SQLite database and the
 `uploads/` directory. Backups older than 30 days are pruned automatically
-(`REMOTE_RETENTION_DAYS` env var to change). Restore by downloading an
-archive, extracting it, and `docker compose cp`-ing `carstats.db` and
-`uploads/` back into the `app` container's `/app/data/`.
+(`REMOTE_RETENTION_DAYS` env var to change).
+
+### Restoring
+
+`restore.sh` pulls an archive back down and puts it in place. It defaults to
+the newest backup and to the local dev database, so working against real data
+is just:
+
+```bash
+./restore.sh                 # newest backup -> backend/data/ (runs alembic upgrade head)
+./restore.sh --list          # what's on the remote
+./restore.sh --archive carstats-backup-20260922-141328.tar.gz
+```
+
+The previous dev database is renamed to `carstats.db.replaced-<timestamp>`
+rather than deleted.
+
+To restore production itself (on the VM, e.g. after rebuilding the box or a
+bad data mishap):
+
+```bash
+./restore.sh --prod          # add -y to skip the confirmation prompt
+```
+
+That snapshots the live database to `/app/data/pre-restore-<timestamp>.db`
+inside the volume first, stops the `app` container while the files are
+swapped in, and starts it again — the entrypoint runs `alembic upgrade head`,
+so an older backup is migrated forward on the way up.
 
 ### Exchange rates
 
