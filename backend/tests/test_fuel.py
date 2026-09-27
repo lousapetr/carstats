@@ -180,3 +180,17 @@ def test_create_fuel_entry_with_eur_converts_to_czk(client):
     assert body["price_total_czk"] == 1500.0
     assert body["price_per_liter_czk"] == 37.5
     assert body["exchange_rate"] == 25.0
+
+
+def test_schema_violation_is_rejected_and_stores_nothing(client):
+    response = client.post(
+        "/api/fuel-entries",
+        json={"date": "2026-08-01", "mileage_km": "not a number", "liters": 40},
+    )
+    assert response.status_code == 422
+    # FastAPI's 422 detail is a list of error objects, not a string — the
+    # frontend flattens it (api/client.ts), so the shape matters.
+    detail = response.json()["detail"]
+    assert isinstance(detail, list)
+    assert all("msg" in item for item in detail)
+    assert client.get("/api/fuel-entries").json() == []

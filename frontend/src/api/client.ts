@@ -7,6 +7,23 @@ export class ApiError extends Error {
   }
 }
 
+/** FastAPI puts a plain string in `detail` for HTTPException, but a list of
+ *  error objects for a 422 schema violation — flatten both to one message. */
+async function errorMessage(response: Response): Promise<string> {
+  const body: unknown = await response.json().catch(() => null)
+  const detail = (body as { detail?: unknown } | null)?.detail
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => (item as { msg?: string }).msg ?? '')
+      .filter((msg) => msg !== '')
+    if (messages.length > 0) return messages.join('; ')
+  }
+  if (typeof detail === 'string') {
+    return detail
+  }
+  return response.statusText
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const isFormData = options.body instanceof FormData
   const response = await fetch(path, {
@@ -19,8 +36,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   })
 
   if (!response.ok) {
-    const detail = await response.json().catch(() => null)
-    throw new ApiError(response.status, detail?.detail ?? response.statusText)
+    throw new ApiError(response.status, await errorMessage(response))
   }
 
   if (response.status === 204) {

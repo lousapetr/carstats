@@ -16,7 +16,7 @@ import { emitErrorToast } from './lib/toastBus'
 const queryClient = new QueryClient({
   mutationCache: new MutationCache({
     onError: (error) => {
-      if (error instanceof ApiError && error.status === 400) {
+      if (error instanceof ApiError && (error.status === 400 || error.status === 422)) {
         emitErrorToast(error.message)
       }
     },
