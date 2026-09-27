@@ -19,3 +19,12 @@ def test_update_car_profile(client):
 
     profile = client.get("/api/car").json()
     assert profile["name"] == "Škodovka"
+
+
+def test_car_profile_rejects_an_implausible_year(client):
+    response = client.put(
+        "/api/car",
+        json={"name": "Škodovka", "make": "Škoda", "model": "Octavia", "year": 999999},
+    )
+    assert response.status_code == 422
+    assert client.get("/api/car").json()["year"] is None

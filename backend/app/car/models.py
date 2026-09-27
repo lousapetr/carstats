@@ -18,7 +18,8 @@ class CarProfile(CarProfileBase, table=True):
 
 
 class CarProfileUpdate(CarProfileBase):
-    pass
+    # Bounded so a typo'd year can't end up in the dashboard heading.
+    year: int | None = Field(default=None, ge=1900, le=2100)
 
 
 class CarProfileRead(CarProfileBase):
