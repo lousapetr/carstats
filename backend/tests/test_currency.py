@@ -1,3 +1,5 @@
+import logging
+
 from app.currency.cnb_client import parse_rates
 from app.currency.models import Currency
 
@@ -45,13 +47,31 @@ def test_currency_rates_fetched_at_most_once_per_day(client, monkeypatch):
     assert calls == 1
 
 
-def test_currency_rates_fall_back_to_seeded_defaults_when_cnb_unreachable(client, monkeypatch):
+def test_currency_rates_fall_back_to_seeded_defaults_when_cnb_unreachable(
+    client, monkeypatch, caplog
+):
     def fake_fetch() -> str:
         raise ConnectionError("network down")
 
     monkeypatch.setattr("app.currency.cnb_client.fetch_daily_text", fake_fetch)
 
-    response = client.get("/api/currency-rates")
+    with caplog.at_level(logging.WARNING, logger="app.currency.service"):
+        response = client.get("/api/currency-rates")
     assert response.status_code == 200
     eur = next(r for r in response.json() if r["currency"] == "EUR")
     assert eur["rate_to_czk"] == 25.20  # DEFAULT_RATES_TO_CZK fallback
+    assert "network down" in caplog.text
+
+
+def test_unparseable_cnb_response_falls_back_and_logs(client, monkeypatch, caplog):
+    monkeypatch.setattr(
+        "app.currency.cnb_client.fetch_daily_text",
+        lambda: "05.09.2026 #172\nCountry|Currency|Amount|Code|Rate\nunexpected format\n",
+    )
+
+    with caplog.at_level(logging.WARNING, logger="app.currency.service"):
+        response = client.get("/api/currency-rates")
+    assert response.status_code == 200
+    eur = next(r for r in response.json() if r["currency"] == "EUR")
+    assert eur["rate_to_czk"] == 25.20
+    assert "keeping cached rates" in caplog.text

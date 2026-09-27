@@ -1,9 +1,13 @@
+import logging
 from datetime import UTC, datetime
 
+import httpx
 from sqlmodel import Session, col, select
 
 from app.currency import cnb_client
 from app.currency.models import DEFAULT_RATES_TO_CZK, Currency, CurrencyRate
+
+logger = logging.getLogger(__name__)
 
 
 def _get_or_seed_row(db: Session, currency: Currency) -> CurrencyRate:
@@ -37,8 +41,15 @@ def _ensure_rates_fresh(db: Session) -> None:
         return
     try:
         rates = cnb_client.parse_rates(cnb_client.fetch_daily_text())
-    except Exception:
-        return  # keep whatever we have (seeded defaults or a previous day's cache)
+    except (httpx.HTTPError, OSError, ValueError) as exc:
+        # Keep whatever we have (seeded defaults or a previous day's cache),
+        # but say so: entries snapshot the rate at write time, so a silently
+        # stale rate gets baked into everything logged today.
+        logger.warning("ČNB rate fetch failed, keeping cached rates: %s", exc, exc_info=True)
+        return
+    if not rates:
+        logger.warning("ČNB rate fetch returned no known currencies, keeping cached rates")
+        return
     for currency, rate in rates.items():
         if currency in DEFAULT_RATES_TO_CZK:
             _ = update_rate(db, currency, rate)
