@@ -1,5 +1,6 @@
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { CostBreakdown } from '../../types'
+import { useIsDark } from '../../lib/useIsDark'
 import { ChartTooltip } from './ChartTooltip'
 
 const CATEGORY_COLORS: Record<string, { light: string; dark: string; label: string }> = {
@@ -9,11 +10,6 @@ const CATEGORY_COLORS: Record<string, { light: string; dark: string; label: stri
   engine_service: { light: '#eda100', dark: '#c98500', label: 'Servis motoru' },
   additives: { light: '#8b5cf6', dark: '#7c3aed', label: 'Aditiva' },
   other: { light: '#e87ba4', dark: '#d55181', label: 'Jiné' },
-}
-
-function useIsDark() {
-  if (typeof window === 'undefined') return false
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
 export function CostBreakdownChart({ data }: { data: CostBreakdown }) {

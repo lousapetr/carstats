@@ -10,6 +10,7 @@ import {
 } from 'recharts'
 import type { FuelTrendPoint } from '../../types'
 import { formatDate } from '../../lib/dates'
+import { useIsDark } from '../../lib/useIsDark'
 import { ChartTooltip } from './ChartTooltip'
 
 const CHART_COLORS = {
@@ -18,11 +19,6 @@ const CHART_COLORS = {
   consumption: { light: '#eb6834', dark: '#d95926' },
   grid: { light: '#e1e0d9', dark: '#2c2c2a' },
   axis: { light: '#898781', dark: '#898781' },
-}
-
-function useIsDark() {
-  if (typeof window === 'undefined') return false
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
 const PRICE_TREND_LABELS: Record<string, string> = {
