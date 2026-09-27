@@ -1,3 +1,6 @@
+from datetime import date, timedelta
+
+
 def test_reminder_status_ok_when_far_from_due(client):
     reminder = client.post(
         "/api/reminders", json={"title": "Oil change", "due_mileage_km": 50000}
@@ -83,3 +86,31 @@ def test_delete_reminder(client):
     response = client.delete(f"/api/reminders/{reminder['id']}")
     assert response.status_code == 204
     assert client.get("/api/reminders").json() == []
+
+
+def test_completing_reminder_recurring_by_days_without_due_date(client):
+    reminder = client.post(
+        "/api/reminders", json={"title": "Olej", "recurrence_days": 180}
+    ).json()
+    assert reminder["due_date"] is None
+
+    completed = client.post(f"/api/reminders/{reminder['id']}/complete").json()
+    assert completed["completed_at"] is None
+    assert completed["due_date"] == str(date.today() + timedelta(days=180))
+    assert completed["status"] == "ok"
+
+
+def test_completing_reminder_recurring_by_km_without_due_mileage(client):
+    client.post(
+        "/api/fuel-entries",
+        json={"date": "2026-08-01", "mileage_km": 10000, "liters": 40, "price_per_liter": 1.5},
+    )
+    reminder = client.post(
+        "/api/reminders", json={"title": "Olej", "recurrence_km": 15000}
+    ).json()
+    assert reminder["due_mileage_km"] is None
+
+    completed = client.post(f"/api/reminders/{reminder['id']}/complete").json()
+    assert completed["completed_at"] is None
+    assert completed["due_mileage_km"] == 25000
+    assert completed["status"] == "ok"

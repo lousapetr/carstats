@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from sqlmodel import Session, col, select
 
@@ -84,17 +84,24 @@ def update_reminder(db: Session, reminder: Reminder, data: ReminderCreate) -> Re
 
 
 def complete_reminder(db: Session, reminder: Reminder) -> ReminderRead:
-    """Mark done. If the reminder recurs, roll it forward instead of hiding it."""
-    if reminder.recurrence_days is not None and reminder.due_date is not None:
-        base = max(reminder.due_date, date.today())
-        reminder.due_date = base.fromordinal(base.toordinal() + reminder.recurrence_days)
-    if reminder.recurrence_km is not None and reminder.due_mileage_km is not None:
-        profile = get_or_create_profile(db)
-        base_mileage = max(reminder.due_mileage_km, profile.current_mileage_km)
-        reminder.due_mileage_km = base_mileage + reminder.recurrence_km
+    """Mark done. If the reminder recurs, roll it forward instead of hiding it.
 
-    is_recurring = reminder.recurrence_days is not None or reminder.recurrence_km is not None
-    reminder.completed_at = None if is_recurring else datetime.now(UTC)
+    A recurrence with no due field yet (the form allows it) still rolls
+    forward, seeded from today / the current mileage — otherwise "Hotovo"
+    would be a no-op and the reminder could never leave the active list.
+    """
+    rolled = False
+    if reminder.recurrence_days is not None:
+        base = max(reminder.due_date, date.today()) if reminder.due_date else date.today()
+        reminder.due_date = base + timedelta(days=reminder.recurrence_days)
+        rolled = True
+    if reminder.recurrence_km is not None:
+        profile = get_or_create_profile(db)
+        base_mileage = max(reminder.due_mileage_km or 0, profile.current_mileage_km)
+        reminder.due_mileage_km = base_mileage + reminder.recurrence_km
+        rolled = True
+
+    reminder.completed_at = None if rolled else datetime.now(UTC)
 
     db.add(reminder)
     db.commit()
