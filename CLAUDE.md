@@ -88,14 +88,18 @@ multi-vehicle table.
 
 ### Currency: snapshot-at-entry-time, not live conversion
 
-`CurrencyRate` holds one editable `rate_to_czk` per non-CZK currency (CZK is always 1.0,
-not stored), lazily seeded with starter defaults from `DEFAULT_RATES_TO_CZK` on first
-access. Every `FuelEntry`/`ServiceEntry` stores the *original* currency/amount plus a copy
-of the exchange rate that was active when it was logged (`exchange_rate` column). This
-means editing a rate in Settings never retroactively changes past dashboard totals — the
-dashboard (`dashboard/service.py`) always sums the CZK-converted values using each entry's
-own stored rate, never today's rate. When adding new money fields, follow this pattern
-rather than converting on read.
+`CurrencyRate` holds one `rate_to_czk` per non-CZK currency (CZK is always 1.0, not
+stored), lazily seeded from `DEFAULT_RATES_TO_CZK` and then refreshed from the ČNB daily
+fixing at most once per calendar day (`_ensure_rates_fresh`); a failed or unparseable fetch
+logs a warning and keeps the cached rates. Rates are read-only to the user — there is no
+`PUT`, and the fuel/maintenance forms show the current rate disabled, for information only.
+
+Every `FuelEntry`/`ServiceEntry` stores the *original* currency/amount plus a copy of the
+exchange rate that was active when it was logged (`exchange_rate` column), so a later
+fixing never retroactively changes past dashboard totals — the dashboard
+(`dashboard/service.py`) always sums the CZK-converted values using each entry's own stored
+rate, never today's. When adding new money fields, follow this pattern rather than
+converting on read.
 
 ### Auth
 
@@ -136,9 +140,14 @@ in `src/components/ui/`. Server state is TanStack Query; forms are react-hook-fo
 
 Error popups are not wired per-form: `App.tsx` configures the shared `QueryClient` with a
 `MutationCache.onError` that shows a toast (`lib/toastBus.ts` + `components/ui/ToastHost.tsx`)
-for any mutation failing with HTTP 400. A new form's validation errors get this for free —
-no per-mutation `onError` needed. Backend 400 `detail` messages are shown verbatim, so they
-must be written in Czech (see `car/service.py`, `currency/service.py`).
+for any mutation failing with HTTP 400 or 422. A new form's validation errors get this for
+free — no per-mutation `onError` needed. Backend 400 `detail` messages are shown verbatim,
+so they must be written in Czech (see `car/service.py`, `attachments/storage.py`); a 422's
+`detail` is a list of pydantic errors, which `api/client.ts` flattens into one message.
+
+The forms hand `onSubmit` the mutation *promise* (`mutateAsync`) and clear themselves only
+once it resolves, so a rejected entry stays on screen to be corrected — don't go back to
+`mutate` + an unconditional `reset()`.
 
 ### Tests
 
