@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type ChangeEvent, useRef } from 'react'
 import { maintenanceApi } from '../../api/maintenance'
 import { Button } from '../../components/ui/Button'
+import { confirmDialog } from '../../lib/confirmBus'
 import type { Attachment } from '../../types'
 
 export function AttachmentUploader({
@@ -46,7 +47,11 @@ export function AttachmentUploader({
             {attachment.filename}
           </a>
           <button
-            onClick={() => deleteMutation.mutate(attachment.id)}
+            onClick={async () => {
+              if (await confirmDialog(`Opravdu smazat přílohu ${attachment.filename}?`)) {
+                deleteMutation.mutate(attachment.id)
+              }
+            }}
             className="text-gray-400 hover:text-red-600"
             aria-label={`Odebrat ${attachment.filename}`}
           >

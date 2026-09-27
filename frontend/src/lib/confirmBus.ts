@@ -12,9 +12,13 @@ export function subscribeConfirm(listener: ConfirmListener): () => void {
   return () => listeners.delete(listener)
 }
 
-/** Shows a confirmation dialog (via ConfirmDialogHost) and resolves true/false. */
+/** Shows a confirmation dialog (via ConfirmDialogHost) and resolves true/false.
+ *  With no host mounted there is nothing to confirm with, so it resolves false
+ *  rather than leaving the caller's promise dangling forever. Only the first
+ *  host is asked, so a second one can't swallow the answer.
+ */
 export function confirmDialog(message: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    listeners.forEach((listener) => listener({ message, resolve }))
-  })
+  const [listener] = listeners
+  if (!listener) return Promise.resolve(false)
+  return new Promise((resolve) => listener({ message, resolve }))
 }
