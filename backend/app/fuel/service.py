@@ -1,4 +1,6 @@
 from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import date
 
 from sqlmodel import Session, col, select
 
@@ -30,29 +32,66 @@ def _to_read(entry: FuelEntry, consumption_l_per_100km: float | None) -> FuelEnt
     )
 
 
-def _compute_consumptions(entries_oldest_first: Sequence[FuelEntry]) -> dict[int, float | None]:
-    """Full-to-full accounting: consumption is only emitted on full-tank
-    entries, as the liters bought since the previous full-tank entry
-    (including this one) divided by the mileage delta between those two
-    full-tank points. Partial fills in between just accumulate liters and
-    emit no reading of their own, so one or more partials don't distort the
-    number the way naive previous-entry deltas would.
+@dataclass(frozen=True)
+class FullToFullInterval:
+    """One measurable stretch between two full-tank fill-ups.
+
+    `date` and `closing_entry_id` are the *closing* full tank's — the entry
+    that carries this interval's consumption in `list_entries_with_stats`,
+    and the one whose year the interval is counted under in per-year stats.
     """
-    consumptions: dict[int, float | None] = {}
+
+    closing_entry_id: int
+    date: date
+    liters: float
+    distance_km: float
+
+
+def full_to_full_intervals(entries: Sequence[FuelEntry]) -> list[FullToFullInterval]:
+    """Full-to-full accounting: a measurable interval runs from one full-tank
+    entry to the next, with the liters bought over it being everything since
+    the previous full tank (the closing entry included). Partial fills in
+    between only accumulate liters and close no interval of their own, so they
+    don't distort the numbers the way naive previous-entry deltas would.
+
+    Entries may be passed in any order. The first full tank opens the first
+    interval without closing one, so n full tanks yield at most n-1 intervals.
+    """
+    intervals: list[FullToFullInterval] = []
     last_full: FuelEntry | None = None
     running_liters = 0.0
-    for entry in entries_oldest_first:
+    for entry in sorted(entries, key=lambda e: e.mileage_km):
         assert entry.id is not None
         running_liters += entry.liters
         if not entry.full_tank:
-            consumptions[entry.id] = None
             continue
-        distance = entry.mileage_km - last_full.mileage_km if last_full else 0
-        consumptions[entry.id] = (
-            round(running_liters / distance * 100, 2) if last_full and distance > 0 else None
-        )
+        distance = entry.mileage_km - last_full.mileage_km if last_full else 0.0
+        if last_full is not None and distance > 0:
+            intervals.append(
+                FullToFullInterval(
+                    closing_entry_id=entry.id,
+                    date=entry.date,
+                    liters=running_liters,
+                    distance_km=distance,
+                )
+            )
         last_full = entry
         running_liters = 0.0
+    return intervals
+
+
+def _compute_consumptions(entries: Sequence[FuelEntry]) -> dict[int, float | None]:
+    """Per-entry consumption: set on the full-tank entry that closes a
+    full-to-full interval, None everywhere else.
+    """
+    consumptions: dict[int, float | None] = {}
+    for entry in entries:
+        assert entry.id is not None
+        consumptions[entry.id] = None
+    for interval in full_to_full_intervals(entries):
+        consumptions[interval.closing_entry_id] = round(
+            interval.liters / interval.distance_km * 100, 2
+        )
     return consumptions
 
 

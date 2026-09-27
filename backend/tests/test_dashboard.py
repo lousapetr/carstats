@@ -1,8 +1,25 @@
+def _fuel(client, date, mileage_km, liters, *, full_tank=True):
+    response = client.post(
+        "/api/fuel-entries",
+        json={
+            "date": date,
+            "mileage_km": mileage_km,
+            "liters": liters,
+            "price_per_liter": 1.0,
+            "full_tank": full_tank,
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
 def test_summary_on_empty_data(client):
     summary = client.get("/api/dashboard/summary").json()
     assert summary["total_fuel_cost"] == 0
     assert summary["total_maintenance_cost"] == 0
     assert summary["avg_consumption_l_per_100km"] is None
+    assert summary["avg_consumption_l_per_100km_this_year"] is None
+    assert summary["avg_consumption_l_per_100km_last_year"] is None
     assert summary["cost_per_km"] is None
     assert summary["upcoming_reminders"] == []
     assert summary["recent_activity"] == []
@@ -96,3 +113,49 @@ def test_cost_breakdown_groups_by_service_type(client):
     breakdown = client.get("/api/dashboard/cost-breakdown").json()
     assert breakdown["fuel_total"] == 60
     assert breakdown["maintenance_by_type"] == {"oil_change": 100}
+
+
+def test_avg_consumption_is_distance_weighted(client):
+    # 1000 km on 50 l (5 l/100 km), then 100 km on 20 l (20 l/100 km). The mean
+    # of the two readings is 12.5; weighted by distance it is 70 l / 1100 km.
+    _fuel(client, "2026-01-01", 10000, 40)
+    _fuel(client, "2026-02-01", 11000, 50)
+    _fuel(client, "2026-03-01", 11100, 20)
+
+    summary = client.get("/api/dashboard/summary").json()
+    assert summary["avg_consumption_l_per_100km"] == round(70 / 1100 * 100, 2)
+
+
+def test_avg_consumption_counts_partial_fills_toward_the_next_full_tank(client):
+    # The partial fill closes no interval of its own; its liters land in the
+    # 10000 -> 11000 stretch, giving 50 l / 1000 km.
+    _fuel(client, "2026-01-01", 10000, 40)
+    _fuel(client, "2026-01-15", 10500, 20, full_tank=False)
+    _fuel(client, "2026-02-01", 11000, 30)
+
+    summary = client.get("/api/dashboard/summary").json()
+    assert summary["avg_consumption_l_per_100km"] == 5.0
+
+
+def test_avg_consumption_splits_this_year_and_last_year(client):
+    # 2025: 400 km on 20 l = 5 l/100 km. 2026: 200 km on 20 l = 10 l/100 km.
+    # All time: 40 l / 600 km = 6.67.
+    _fuel(client, "2025-01-01", 10000, 30)
+    _fuel(client, "2025-06-01", 10400, 20)
+    _fuel(client, "2026-06-01", 10600, 20)
+
+    summary = client.get("/api/dashboard/summary").json()
+    assert summary["avg_consumption_l_per_100km_last_year"] == 5.0
+    assert summary["avg_consumption_l_per_100km_this_year"] == 10.0
+    assert summary["avg_consumption_l_per_100km"] == round(40 / 600 * 100, 2)
+
+
+def test_avg_consumption_is_none_for_a_year_with_no_closed_interval(client):
+    # A single fill-up opens an interval but closes none, so there is nothing
+    # to measure in either year.
+    _fuel(client, "2026-01-01", 10000, 40)
+
+    summary = client.get("/api/dashboard/summary").json()
+    assert summary["avg_consumption_l_per_100km"] is None
+    assert summary["avg_consumption_l_per_100km_this_year"] is None
+    assert summary["avg_consumption_l_per_100km_last_year"] is None

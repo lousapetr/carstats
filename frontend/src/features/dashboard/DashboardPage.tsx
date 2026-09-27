@@ -8,6 +8,10 @@ import { formatDate } from '../../lib/dates'
 import { CostBreakdownChart } from './CostBreakdownChart'
 import { ConsumptionTrendChart, FuelPriceTrendChart } from './FuelTrendChart'
 
+function formatConsumption(value: number | null) {
+  return value !== null ? `${value} l/100 km` : '—'
+}
+
 export function DashboardPage() {
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['dashboard', 'summary'],
@@ -65,18 +69,22 @@ export function DashboardPage() {
         <StatTile label="Náklady na palivo" value={formatCzk(summary.total_fuel_cost)} />
         <StatTile label="Náklady na servis" value={formatCzk(summary.total_maintenance_cost)} />
         <StatTile
-          label="Průměrná spotřeba"
-          value={
-            summary.avg_consumption_l_per_100km !== null
-              ? `${summary.avg_consumption_l_per_100km} l/100 km`
-              : '—'
-          }
+          label="Náklady na km"
+          value={summary.cost_per_km !== null ? `${summary.cost_per_km} Kč/km` : '—'}
         />
         <StatTile label="Náklady letos" value={formatCzk(summary.total_cost_this_year)} />
         <StatTile label="Náklady vloni" value={formatCzk(summary.total_cost_last_year)} />
         <StatTile
-          label="Náklady na km"
-          value={summary.cost_per_km !== null ? `${summary.cost_per_km} Kč/km` : '—'}
+          label="Spotřeba celkem"
+          value={formatConsumption(summary.avg_consumption_l_per_100km)}
+        />
+        <StatTile
+          label="Spotřeba letos"
+          value={formatConsumption(summary.avg_consumption_l_per_100km_this_year)}
+        />
+        <StatTile
+          label="Spotřeba vloni"
+          value={formatConsumption(summary.avg_consumption_l_per_100km_last_year)}
         />
       </div>
 

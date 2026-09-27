@@ -138,29 +138,23 @@ def complete_reminder(db: Session, reminder: Reminder) -> ReminderRead:
 (This also replaces `base.fromordinal(base.toordinal() + n)` with `base + timedelta(days=n)` —
 see finding 12.)
 
-**4. Average consumption is an unweighted mean of intervals, not litres per distance**
+**4. ~~Average consumption is an unweighted mean of intervals, not litres per distance~~ — FIXED**
 `backend/app/dashboard/service.py:64-69`
 
-`avg_consumption_l_per_100km` averages the per-interval `consumption_l_per_100km` values
-with equal weight, so a 100 km top-up counts as much as a 1000 km tank. The headline
-dashboard number can be off by 2× on realistic data.
+Fixed 2026-09-27: `fuel/service.py` now exposes `full_to_full_intervals(entries)`, returning
+the litres and distance of each full-tank-to-full-tank stretch (plus the closing entry's id
+and date). `_compute_consumptions` is built on it, so the per-entry figures and the averages
+come from one walk. `dashboard/service.py`'s `_avg_consumption` sums litres over distance
+across those intervals, which is distance-weighted by construction — the 1000 km @ 5 l +
+100 km @ 20 l case now reports 6.36 rather than 12.5.
 
-Verified against the running app — 1000 km at 5 l/100 km followed by 100 km at
-20 l/100 km:
-
-```
-per-entry consumptions: [5.0, 20.0]
-avg reported: 12.5 l/100 km      true (70 l / 1100 km): 6.36 l/100 km
-```
-
-Fix — weight by distance, i.e. total litres over total distance across full-to-full
-intervals. `_compute_consumptions` already walks exactly those intervals; have it also
-return the litres and distance per interval (or add a sibling helper) and compute:
-
-```python
-total_l, total_km = fuel_service.full_to_full_totals(db)
-avg_consumption = round(total_l / total_km * 100, 2) if total_km > 0 else None
-```
+The same helper also gave the per-year figures asked for alongside this:
+`avg_consumption_l_per_100km_this_year` / `_last_year`, each over the intervals *closed* in
+that year, so an interval spanning New Year counts under the year it ended in — matching
+where its consumption shows up in the fuel list. Three dashboard tiles: "Spotřeba celkem /
+letos / vloni". Because the intervals are computed from the `fuel_entries` already in hand,
+this also closed finding 11 — `get_summary` no longer re-queries via
+`list_entries_with_stats`.
 
 **5. Attachment upload has no size limit and no server-side type check**
 `backend/app/attachments/storage.py:20`, `backend/app/attachments/router.py:20-37`
@@ -324,12 +318,12 @@ before = db.exec(
 Add `index=True` to `FuelEntry.date` and `ServiceEntry.date` while you are in a migration.
 For a personal log this is a few hundred rows — file it as cleanup, not urgency.
 
-**11. `get_summary` re-queries fuel entries it already has in hand**
+**11. ~~`get_summary` re-queries fuel entries it already has in hand~~ — FIXED**
 `backend/app/dashboard/service.py:40, 64-68`
 
-`fuel_entries` is loaded at line 40, then `list_entries_with_stats(db)` at line 66 issues
-the same query again purely to reach the consumption figures. Folding finding 4's
-distance-weighted helper in here removes the second read as a side effect.
+Fixed 2026-09-27 as a side effect of finding 4: the consumption figures now come from
+`full_to_full_intervals(fuel_entries)`, using the entries already loaded, so the second
+`list_entries_with_stats(db)` read is gone. `get_fuel_trend` still uses it, as intended.
 
 **12. `date.fromordinal` arithmetic where `timedelta` is clearer**
 `backend/app/reminders/service.py:90`
@@ -419,9 +413,10 @@ stays offline. The gaps line up with the bugs above, which is why they survived:
 - `tests/test_reminders.py` — recurrence is only tested with both fields set. Add
   `test_completing_reminder_recurring_by_days_without_due_date` and the `recurrence_km` /
   no-`due_mileage_km` twin (finding 3).
-- `tests/test_dashboard.py` — `avg_consumption_l_per_100km` is never asserted. Add
-  `test_avg_consumption_is_distance_weighted` using the 1000 km @ 5 l + 100 km @ 20 l case
-  above, expecting 6.36 rather than 12.5 (finding 4).
+- ~~`tests/test_dashboard.py` — `avg_consumption_l_per_100km` is never asserted.~~ Done —
+  `test_avg_consumption_is_distance_weighted` pins the 1000 km @ 5 l + 100 km @ 20 l case at
+  6.36, with siblings for partial-fill attribution, the this-year/last-year split, and a
+  lone fill-up that closes no interval.
 - `tests/test_attachments.py` — covers the happy path, the 404, and delete. Add rejection
   of an oversized upload and of a disallowed content type (finding 5).
 - No test asserts a 422 body shape or that a rejected create leaves no row behind

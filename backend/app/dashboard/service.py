@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import date
 
 from sqlmodel import Session, select
@@ -6,7 +7,7 @@ from app.car.models import CarProfileRead
 from app.car.service import get_or_create_profile
 from app.dashboard.schemas import CostBreakdown, DashboardSummary, FuelTrendPoint, TimelineItem
 from app.fuel.models import FuelEntry
-from app.fuel.service import list_entries_with_stats
+from app.fuel.service import FullToFullInterval, full_to_full_intervals, list_entries_with_stats
 from app.maintenance.models import ServiceEntry, ServiceType
 from app.reminders.service import list_active_reminders
 
@@ -36,22 +37,38 @@ def _service_label(entry: ServiceEntry) -> str:
     return label
 
 
+def _avg_consumption(intervals: Sequence[FullToFullInterval]) -> float | None:
+    """Litres burned per 100 km over the given full-to-full intervals.
+
+    Distance-weighted by construction — total litres over total distance — so a
+    short top-up can't pull the figure around as much as a long tank.
+    """
+    total_km = sum(i.distance_km for i in intervals)
+    if total_km <= 0:
+        return None
+    return round(sum(i.liters for i in intervals) / total_km * 100, 2)
+
+
 def get_summary(db: Session) -> DashboardSummary:
+    this_year = date.today().year
     profile = get_or_create_profile(db)
     fuel_entries = db.exec(select(FuelEntry)).all()
+    fuel_entries_this_year = [e for e in fuel_entries if e.date.year == this_year]
+    fuel_entries_last_year = [e for e in fuel_entries if e.date.year == this_year - 1]
     service_entries = db.exec(select(ServiceEntry)).all()
+    service_entries_this_year = [e for e in service_entries if e.date.year == this_year]
+    service_entries_last_year = [e for e in service_entries if e.date.year == this_year - 1]
 
     total_fuel_cost = sum(_fuel_cost_czk(e) for e in fuel_entries)
     total_fuel_liters = sum(e.liters for e in fuel_entries)
     total_maintenance_cost = sum(_service_cost_czk(e) for e in service_entries)
 
-    this_year = date.today().year
-    total_cost_this_year = sum(
-        _fuel_cost_czk(e) for e in fuel_entries if e.date.year == this_year
-    ) + sum(_service_cost_czk(e) for e in service_entries if e.date.year == this_year)
-    total_cost_last_year = sum(
-        _fuel_cost_czk(e) for e in fuel_entries if e.date.year == this_year - 1
-    ) + sum(_service_cost_czk(e) for e in service_entries if e.date.year == this_year - 1)
+    total_cost_this_year = sum(_fuel_cost_czk(e) for e in fuel_entries_this_year) + sum(
+        _service_cost_czk(e) for e in service_entries_this_year
+    )
+    total_cost_last_year = sum(_fuel_cost_czk(e) for e in fuel_entries_last_year) + sum(
+        _service_cost_czk(e) for e in service_entries_last_year
+    )
 
     all_mileages = [e.mileage_km for e in fuel_entries] + [e.mileage_km for e in service_entries]
     cost_per_km = None
@@ -60,12 +77,16 @@ def get_summary(db: Session) -> DashboardSummary:
         if distance_driven > 0:
             cost_per_km = round((total_fuel_cost + total_maintenance_cost) / distance_driven, 2)
 
-    consumptions = [
-        e.consumption_l_per_100km
-        for e in list_entries_with_stats(db)
-        if e.consumption_l_per_100km is not None
-    ]
-    avg_consumption = round(sum(consumptions) / len(consumptions), 2) if consumptions else None
+    # Intervals are derived from the whole history, then bucketed by the year of
+    # the full tank that closes each one — an interval spanning New Year counts
+    # under the year it ended in, matching where its consumption figure shows up
+    # in the fuel list.
+    intervals = full_to_full_intervals(fuel_entries)
+    avg_consumption = _avg_consumption(intervals)
+    avg_consumption_this_year = _avg_consumption([i for i in intervals if i.date.year == this_year])
+    avg_consumption_last_year = _avg_consumption(
+        [i for i in intervals if i.date.year == this_year - 1]
+    )
 
     timeline = [
         TimelineItem(
@@ -98,6 +119,8 @@ def get_summary(db: Session) -> DashboardSummary:
         total_cost_last_year=round(total_cost_last_year, 2),
         cost_per_km=cost_per_km,
         avg_consumption_l_per_100km=avg_consumption,
+        avg_consumption_l_per_100km_this_year=avg_consumption_this_year,
+        avg_consumption_l_per_100km_last_year=avg_consumption_last_year,
         upcoming_reminders=list_active_reminders(db),
         recent_activity=timeline[:RECENT_ACTIVITY_LIMIT],
     )

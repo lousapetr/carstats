@@ -29,7 +29,11 @@ class DashboardSummary(BaseModel):
     total_cost_this_year: float
     total_cost_last_year: float
     cost_per_km: float | None
+    # Distance-weighted over full-to-full intervals; the per-year figures cover
+    # the intervals closed in that year, and are None when there are none.
     avg_consumption_l_per_100km: float | None
+    avg_consumption_l_per_100km_this_year: float | None
+    avg_consumption_l_per_100km_last_year: float | None
     upcoming_reminders: list[ReminderRead]
     recent_activity: list[TimelineItem]
 

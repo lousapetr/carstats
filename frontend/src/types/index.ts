@@ -130,6 +130,8 @@ export interface DashboardSummary {
   total_cost_last_year: number
   cost_per_km: number | null
   avg_consumption_l_per_100km: number | null
+  avg_consumption_l_per_100km_this_year: number | null
+  avg_consumption_l_per_100km_last_year: number | null
   upcoming_reminders: Reminder[]
   recent_activity: TimelineItem[]
 }
