@@ -80,3 +80,25 @@ def test_upload_rejects_oversized_file(client, monkeypatch, tmp_path):
     assert "velký" in response.json()["detail"]
     assert client.get("/api/service-entries").json()[0]["attachments"] == []
     assert list(tmp_path.glob("**/*.pdf")) == []
+
+
+def test_listing_keeps_attachments_with_their_own_entry(client, monkeypatch, tmp_path):
+    """The listing groups all attachments in one query, so a mix-up between
+    entries would be the failure mode."""
+    monkeypatch.setattr(settings, "uploads_dir", str(tmp_path))
+    first = _create_service_entry(client)
+    second = client.post(
+        "/api/service-entries",
+        json={"date": "2026-08-20", "mileage_km": 10500, "type": "tires", "cost": 200},
+    ).json()
+
+    for entry, name in ((first, "first.pdf"), (second, "second.pdf")):
+        response = client.post(
+            f"/api/service-entries/{entry['id']}/attachments",
+            files={"file": (name, io.BytesIO(b"data"), "application/pdf")},
+        )
+        assert response.status_code == 201
+
+    by_id = {e["id"]: e for e in client.get("/api/service-entries").json()}
+    assert [a["filename"] for a in by_id[first["id"]]["attachments"]] == ["first.pdf"]
+    assert [a["filename"] for a in by_id[second["id"]]["attachments"]] == ["second.pdf"]

@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from sqlmodel import Session, col, select
 
 from app.attachments.models import Attachment, AttachmentRead
@@ -82,4 +84,8 @@ def delete_entry(db: Session, entry: ServiceEntry) -> None:
 
 def list_entries(db: Session) -> list[ServiceEntryRead]:
     entries = db.exec(select(ServiceEntry).order_by(col(ServiceEntry.date).desc())).all()
-    return [_to_read(entry, _attachments_for(db, entry)) for entry in entries]
+    # One query for all attachments rather than one per entry.
+    by_entry: dict[int, list[Attachment]] = defaultdict(list)
+    for attachment in db.exec(select(Attachment)).all():
+        by_entry[attachment.service_entry_id].append(attachment)
+    return [_to_read(entry, by_entry[entry.id]) for entry in entries if entry.id is not None]

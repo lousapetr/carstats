@@ -1,4 +1,5 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
+from datetime import date as date_type
 from enum import StrEnum
 
 from sqlmodel import Field, SQLModel
@@ -16,7 +17,9 @@ class ServiceType(StrEnum):
 
 
 class ServiceEntryBase(SQLModel):
-    date: date
+    # `date_type` because pydantic cannot resolve an annotation shadowed
+    # by the field's own name once the field carries a Field(...).
+    date: date_type = Field(index=True)
     mileage_km: float
     type: ServiceType
     description: str | None = None

@@ -1,4 +1,5 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
+from datetime import date as date_type
 
 from sqlmodel import Field, SQLModel
 
@@ -6,7 +7,9 @@ from app.currency.models import Currency
 
 
 class FuelEntryBase(SQLModel):
-    date: date
+    # `date_type` because pydantic cannot resolve an annotation shadowed
+    # by the field's own name once the field carries a Field(...).
+    date: date_type = Field(index=True)
     mileage_km: float
     liters: float
     price_per_liter: float
