@@ -1,7 +1,7 @@
 import mimetypes
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -47,6 +47,12 @@ if os.path.isdir(_dist_dir):
 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str) -> FileResponse:
+        # Real endpoints are registered above and win, so anything left under
+        # these prefixes is a typo'd or retired route: 404 it rather than
+        # handing the client HTML it will try to parse as JSON.
+        if full_path.startswith(("api/", "auth/")):
+            raise HTTPException(status_code=404, detail="Not found")
+
         # Serve real top-level build files (favicon, PWA manifest, service
         # worker) as-is; fall back to index.html for client-side SPA routes.
         # Path is resolved and re-checked against _dist_dir_abs to prevent
