@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
+import { type DefaultValues, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { currencyApi } from '../../api/currency'
 import { Button } from '../../components/ui/Button'
@@ -20,6 +20,12 @@ const schema = z.object({
 export type MaintenanceFormValues = z.output<typeof schema>
 type MaintenanceFormInput = z.input<typeof schema>
 
+const blankValues = (): DefaultValues<MaintenanceFormInput> => ({
+  date: new Date().toISOString().slice(0, 10),
+  type: 'oil_change',
+  currency: 'CZK',
+})
+
 const TYPE_OPTIONS: { value: MaintenanceFormValues['type']; label: string }[] = [
   { value: 'oil_change', label: 'Výměna oleje' },
   { value: 'tires', label: 'Pneumatiky' },
@@ -35,7 +41,7 @@ export function MaintenanceForm({
   submitLabel,
   onCancel,
 }: {
-  onSubmit: (values: MaintenanceFormValues) => void
+  onSubmit: (values: MaintenanceFormValues) => Promise<unknown>
   isSubmitting: boolean
   defaultValues?: MaintenanceFormInput
   submitLabel?: string
@@ -49,11 +55,7 @@ export function MaintenanceForm({
     formState: { errors },
   } = useForm<MaintenanceFormInput, unknown, MaintenanceFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: defaultValues ?? {
-      date: new Date().toISOString().slice(0, 10),
-      type: 'oil_change',
-      currency: 'CZK',
-    },
+    defaultValues: defaultValues ?? blankValues(),
   })
 
   const currency = watch('currency')
@@ -62,14 +64,15 @@ export function MaintenanceForm({
 
   return (
     <form
-      onSubmit={handleSubmit((values) => {
-        onSubmit(values)
+      onSubmit={handleSubmit(async (values) => {
+        // See FuelForm: reset only after the server accepted the entry.
+        try {
+          await onSubmit(values)
+        } catch {
+          return
+        }
         if (!defaultValues) {
-          reset({
-            date: new Date().toISOString().slice(0, 10),
-            type: 'oil_change',
-            currency: 'CZK',
-          })
+          reset(blankValues())
         }
       })}
       className="grid grid-cols-2 gap-3"

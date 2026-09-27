@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
+import { type DefaultValues, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { currencyApi } from '../../api/currency'
 import { Button } from '../../components/ui/Button'
@@ -20,6 +20,12 @@ const schema = z.object({
 export type FuelFormValues = z.output<typeof schema>
 type FuelFormInput = z.input<typeof schema>
 
+const blankValues = (): DefaultValues<FuelFormInput> => ({
+  date: new Date().toISOString().slice(0, 10),
+  currency: 'CZK',
+  full_tank: true,
+})
+
 export function FuelForm({
   onSubmit,
   isSubmitting,
@@ -27,7 +33,7 @@ export function FuelForm({
   submitLabel,
   onCancel,
 }: {
-  onSubmit: (values: FuelFormValues) => void
+  onSubmit: (values: FuelFormValues) => Promise<unknown>
   isSubmitting: boolean
   defaultValues?: FuelFormInput
   submitLabel?: string
@@ -41,11 +47,7 @@ export function FuelForm({
     formState: { errors },
   } = useForm<FuelFormInput, unknown, FuelFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: defaultValues ?? {
-      date: new Date().toISOString().slice(0, 10),
-      currency: 'CZK',
-      full_tank: true,
-    },
+    defaultValues: defaultValues ?? blankValues(),
   })
 
   const currency = watch('currency')
@@ -54,10 +56,17 @@ export function FuelForm({
 
   return (
     <form
-      onSubmit={handleSubmit((values) => {
-        onSubmit(values)
+      onSubmit={handleSubmit(async (values) => {
+        // Clear the form only once the server accepted the entry: a rejected
+        // one (e.g. the mileage-consistency guard) has to stay put to be
+        // corrected. The failure itself is toasted by the shared MutationCache.
+        try {
+          await onSubmit(values)
+        } catch {
+          return
+        }
         if (!defaultValues) {
-          reset({ date: new Date().toISOString().slice(0, 10), currency: 'CZK', full_tank: true })
+          reset(blankValues())
         }
       })}
       className="grid grid-cols-2 gap-3"

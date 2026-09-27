@@ -68,13 +68,11 @@ export function RemindersPage() {
           defaultValues={editingReminder ? toFormValues(editingReminder) : undefined}
           submitLabel={editingReminder ? 'Uložit změny' : undefined}
           onCancel={editingReminder ? () => setEditingReminder(null) : undefined}
-          onSubmit={(values) => {
-            if (editingReminder) {
-              updateMutation.mutate({ id: editingReminder.id, data: values })
-            } else {
-              createMutation.mutate(values)
-            }
-          }}
+          onSubmit={(values) =>
+            editingReminder
+              ? updateMutation.mutateAsync({ id: editingReminder.id, data: values })
+              : createMutation.mutateAsync(values)
+          }
           isSubmitting={createMutation.isPending || updateMutation.isPending}
         />
       </Card>

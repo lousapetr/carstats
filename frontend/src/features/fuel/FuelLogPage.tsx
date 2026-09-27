@@ -63,13 +63,11 @@ export function FuelLogPage() {
           defaultValues={editingEntry ? toFormValues(editingEntry) : undefined}
           submitLabel={editingEntry ? 'Uložit změny' : undefined}
           onCancel={editingEntry ? () => setEditingEntry(null) : undefined}
-          onSubmit={(values) => {
-            if (editingEntry) {
-              updateMutation.mutate({ id: editingEntry.id, data: values })
-            } else {
-              createMutation.mutate(values)
-            }
-          }}
+          onSubmit={(values) =>
+            editingEntry
+              ? updateMutation.mutateAsync({ id: editingEntry.id, data: values })
+              : createMutation.mutateAsync(values)
+          }
           isSubmitting={createMutation.isPending || updateMutation.isPending}
         />
       </Card>

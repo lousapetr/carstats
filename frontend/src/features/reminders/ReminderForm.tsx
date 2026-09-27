@@ -25,7 +25,7 @@ export function ReminderForm({
   submitLabel,
   onCancel,
 }: {
-  onSubmit: (values: ReminderFormValues) => void
+  onSubmit: (values: ReminderFormValues) => Promise<unknown>
   isSubmitting: boolean
   defaultValues?: ReminderFormInput
   submitLabel?: string
@@ -43,8 +43,13 @@ export function ReminderForm({
 
   return (
     <form
-      onSubmit={handleSubmit((values) => {
-        onSubmit(values)
+      onSubmit={handleSubmit(async (values) => {
+        // See FuelForm: reset only after the server accepted the reminder.
+        try {
+          await onSubmit(values)
+        } catch {
+          return
+        }
         if (!defaultValues) {
           reset({})
         }
