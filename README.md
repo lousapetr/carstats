@@ -56,7 +56,8 @@ Cloudflare Tunnel for public HTTPS access without opening any ports.
 
    If you're on E2.1.Micro (1 GB RAM), add swap before installing anything —
    `dnf`/`apt` dependency resolution across several repos can otherwise choke
-   the machine into unresponsive swap-thrashing:
+   the machine into unresponsive swap-thrashing (swap alone isn't enough on
+   Oracle Linux; see "Keeping the VM patched" for the repo that causes this):
    ```bash
    sudo fallocate -l 2G /swapfile
    sudo chmod 600 /swapfile
@@ -132,7 +133,9 @@ Drive.
    ```
    0 3 * * * /home/opc/carstats/backup.sh >> /home/opc/carstats/backup.log 2>&1
    ```
-   (adjust the path to wherever you cloned the repo).
+   (adjust the path to wherever you cloned the repo). The OS-update timer in
+   "Keeping the VM patched" — and the reboot that can follow it — is scheduled
+   an hour after this slot, so if you move it, move that too.
 
 Backups land in the `carstats-backups` folder on Drive as
 `carstats-backup-<timestamp>.tar.gz`, containing the SQLite database and the
@@ -165,6 +168,124 @@ That snapshots the live database to `/app/data/pre-restore-<timestamp>.db`
 inside the volume first, stops the `app` container while the files are
 swapped in, and starts it again — the entrypoint runs `alembic upgrade head`,
 so an older backup is migrated forward on the way up.
+
+### Keeping the VM patched
+
+OS updates stay out of `deploy.sh`: a repo failure there would abort the script
+before `docker compose up -d` and leave the app down, and on E2.1.Micro a `dnf`
+solve on top of the Vite build invites the swap-thrashing from step 1.
+
+**Disable two Oracle Linux repos first** — on a 1 GB box this is the part that
+matters:
+
+```bash
+sudo dnf config-manager --set-disabled ol9_oci_included,ol9_ksplice
+```
+
+`ol9_oci_included` ships 182 MB of metadata that needs over a gigabyte of RAM to
+expand, so `dnf upgrade` appears to hang forever without ever reaching
+`ol9_baseos_latest`/`ol9_appstream`. It carries no security errata, so the only
+loss is updates to `tuned-profiles-oci*`; use `--enablerepo=ol9_oci_included`
+for a one-off. `ol9_ksplice` (32 MB) is a milder case of the same tax, and
+Ksplice's no-reboot kernel patching is pointless given the reboots below.
+
+**Automatic security updates:**
+
+```bash
+sudo dnf install -y dnf-automatic
+```
+
+In `/etc/dnf/automatic.conf`:
+
+```ini
+[commands]
+upgrade_type = security
+apply_updates = yes
+reboot = when-changed
+
+[emitters]
+emit_via = stdio
+```
+
+`security` keeps each transaction small, which matters on 1 GB. `reboot` does
+nothing without `apply_updates = yes`, and `when-changed` beats `when-needed`
+here because the latter's hint list is short (kernel, `glibc`, `systemd`,
+`dbus`, `linux-firmware`) and misses `openssl`, leaving `sshd`/`dockerd` on the
+old library.
+
+Move the run clear of the backup — `sudo systemctl edit dnf-automatic.timer`:
+
+```ini
+[Timer]
+OnCalendar=
+OnCalendar=*-*-* 04:00
+RandomizedDelaySec=0
+Persistent=false
+```
+
+The empty `OnCalendar=` is required to clear the packaged 06:00 entry, since
+these directives are additive. `Persistent=false` stops a missed run from firing
+at boot, where it could land on a backup.
+
+Optionally let `dnf` throttle rather than push the app into swap —
+`sudo systemctl edit dnf-automatic.service`:
+
+```ini
+[Service]
+MemoryHigh=450M
+```
+
+```bash
+sudo systemctl enable --now dnf-automatic.timer
+```
+
+**The backup must come first** and finish undisturbed: `backup.sh` snapshots
+through `docker compose exec -T app`, so it fails outright if the container is
+stopped or the box is mid-reboot.
+
+| When | What |
+| --- | --- |
+| 03:00 daily | `backup.sh` (cron) |
+| 04:00 daily | `dnf-automatic.timer` |
+| ~04:05, if packages changed | reboot (`reboot_command` defaults to `shutdown -r +5`) |
+
+`dnf-automatic` itself never touches the containers; the hour of separation is
+there so a slow backup can't meet a dependency solve. If you move the backup
+cron, move the timer's `OnCalendar` by the same amount.
+
+**Monthly, by hand.** `upgrade_type = security` only moves packages carrying an
+advisory, and `docker-ce-stable` publishes no errata metadata at all, so the
+unattended job never updates the Docker daemon. Run a full upgrade with the app
+stopped — not around 03:00:
+
+```bash
+cd ~/carstats && docker compose down
+sudo dnf upgrade -y
+docker compose up -d
+sudo dnf needs-restarting -r || sudo reboot
+```
+
+`docker compose down` *removes* the containers, so `restart: unless-stopped`
+cannot bring them back after a reboot — always `up -d` before rebooting.
+`needs-restarting -r` exits 1 when a reboot *is* needed, hence `||`, not `&&`.
+
+`cloudflared` runs from `cloudflare/cloudflared:latest`, and `deploy.sh`'s
+`up -d --build` won't re-pull that tag while a local copy exists, so include it
+in the same pass:
+
+```bash
+cd ~/carstats && docker compose pull && docker compose up -d
+docker image prune -f
+```
+
+**Verifying:**
+
+```bash
+systemctl list-timers dnf-automatic.timer
+journalctl -u dnf-automatic --since '2 days ago'
+uname -r                      # matches the newest installed kernel
+sudo dnf needs-restarting -r  # exits 1 if a reboot is still pending
+```
 
 ### Exchange rates
 
