@@ -1,4 +1,5 @@
 import pytest
+from authlib.integrations.base_client import OAuthError
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
@@ -51,16 +52,23 @@ def test_is_email_allowed_fails_closed_when_unconfigured(monkeypatch, configured
 class _StubGoogleClient:
     """Stands in for app.auth.oauth.google_client()'s return value."""
 
-    def __init__(self, userinfo):
+    def __init__(self, userinfo=None, error=None):
         self._userinfo = userinfo
+        self._error = error
 
     async def authorize_access_token(self, request):
+        if self._error is not None:
+            raise self._error
         return {"userinfo": self._userinfo}
 
 
-def _callback_with_userinfo(anon_client, monkeypatch, userinfo):
-    monkeypatch.setattr("app.auth.router.google_client", lambda: _StubGoogleClient(userinfo))
+def _callback_with_client(anon_client, monkeypatch, stub):
+    monkeypatch.setattr("app.auth.router.google_client", lambda: stub)
     return anon_client.get("/auth/callback", follow_redirects=False)
+
+
+def _callback_with_userinfo(anon_client, monkeypatch, userinfo):
+    return _callback_with_client(anon_client, monkeypatch, _StubGoogleClient(userinfo=userinfo))
 
 
 def test_callback_signs_in_any_allowlisted_account(anon_client, monkeypatch):
@@ -78,7 +86,7 @@ def test_callback_rejects_an_account_off_the_list(anon_client, monkeypatch):
     response = _callback_with_userinfo(
         anon_client, monkeypatch, {"email": "stranger@example.com", "email_verified": True}
     )
-    assert response.status_code == 403
+    assert response.headers["location"] == "/?error=not-allowed"
     assert anon_client.get("/auth/me").status_code == 401
 
 
@@ -102,7 +110,36 @@ def test_callback_rejects_an_unverified_email(anon_client, monkeypatch, verified
     if verified is not None:
         userinfo["email_verified"] = verified
     response = _callback_with_userinfo(anon_client, monkeypatch, userinfo)
-    assert response.status_code == 403
+    assert response.headers["location"] == "/?error=unverified"
+    assert anon_client.get("/auth/me").status_code == 401
+
+
+# A refreshed or bookmarked callback URL (single-use code), a state mismatch and
+# a cancelled consent screen all surface as OAuthError; ValueError/JoseError is
+# what a malformed ID token raises.
+@pytest.mark.parametrize(
+    "error",
+    [
+        OAuthError(error="invalid_grant", description="Bad Request"),
+        OAuthError(error="access_denied"),
+        ValueError("Invalid JSON Web Token"),
+    ],
+)
+def test_callback_sends_a_failed_exchange_back_to_the_login_screen(
+    anon_client, monkeypatch, error
+):
+    monkeypatch.setattr(settings, "allowed_emails", "me@example.com")
+    response = _callback_with_client(anon_client, monkeypatch, _StubGoogleClient(error=error))
+    assert response.status_code == 307
+    assert response.headers["location"] == "/?error=oauth"
+    assert anon_client.get("/auth/me").status_code == 401
+    assert anon_client.get("/api/car").status_code == 401
+
+
+def test_callback_without_an_email_returns_to_the_login_screen(anon_client, monkeypatch):
+    monkeypatch.setattr(settings, "allowed_emails", "me@example.com")
+    response = _callback_with_userinfo(anon_client, monkeypatch, {"email_verified": True})
+    assert response.headers["location"] == "/?error=no-email"
     assert anon_client.get("/auth/me").status_code == 401
 
 

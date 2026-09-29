@@ -107,7 +107,12 @@ converting on read.
 Server-side session cookie only (Starlette `SessionMiddleware`, no JWT/localStorage).
 `/auth/login` → Google OAuth → `/auth/callback` rejects an email Google reports as
 unverified, then checks it against the `ALLOWED_EMAILS` allowlist before setting the
-session. The `CurrentUser` dependency (`core/security.py`) gates every `/api/*` route
+session. Every failure in the callback — a token exchange that raises (a refreshed or
+bookmarked callback URL reuses a single-use code, a stale `state`, a cancelled consent
+screen) as well as the three post-exchange rejections — redirects to `/?error=<code>`
+instead of raising, because the caller is a browser following a redirect and a raw JSON
+403 (or a 500) leaves it with no way back. `LoginScreen.tsx` maps the code to a Czech
+message and strips the parameter; a new failure path needs an entry in both. The `CurrentUser` dependency (`core/security.py`) gates every `/api/*` route
 (and `/auth/me`), and it re-checks the allowlist on *every* request, not only at login —
 with no server-side session store, a login-time-only check would leave a dropped address
 working until its cookie expired, and rotating `CARSTATS_SESSION_SECRET` (which signs
