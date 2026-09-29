@@ -95,7 +95,9 @@ Cloudflare Tunnel for public HTTPS access without opening any ports.
    `CARSTATS_GOOGLE_CLIENT_ID`, `CARSTATS_GOOGLE_CLIENT_SECRET`,
    `CARSTATS_OAUTH_REDIRECT_URL` (the tunnel hostname from step 5),
    `CARSTATS_ALLOWED_EMAILS` (a comma-separated list of the Google accounts
-   allowed to sign in — all of them see and edit the same car log), and
+   allowed to sign in — all of them see and edit the same car log; the list is
+   re-checked on every request, so removing an address and redeploying locks
+   that account out immediately, even if it is already signed in), and
    `CLOUDFLARE_TUNNEL_TOKEN` from step 5. Generate `CARSTATS_SESSION_SECRET`
    with `openssl rand -hex 32` — the app refuses to start if it is missing or
    shorter than 32 characters, so a deploy can never silently fall back to a

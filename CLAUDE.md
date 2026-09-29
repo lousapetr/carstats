@@ -107,7 +107,12 @@ converting on read.
 Server-side session cookie only (Starlette `SessionMiddleware`, no JWT/localStorage).
 `/auth/login` → Google OAuth → `/auth/callback` rejects an email Google reports as
 unverified, then checks it against the `ALLOWED_EMAILS` allowlist before setting the
-session. The `CurrentUser` dependency (`core/security.py`) gates every `/api/*` route.
+session. The `CurrentUser` dependency (`core/security.py`) gates every `/api/*` route
+(and `/auth/me`), and it re-checks the allowlist on *every* request, not only at login —
+with no server-side session store, a login-time-only check would leave a dropped address
+working until its cookie expired, and rotating `CARSTATS_SESSION_SECRET` (which signs
+everyone out) would be the only way to revoke one person. Keep that re-check; it is why
+the 30-day `SESSION_MAX_AGE_SECONDS` is safe to keep as long as it is.
 
 `CARSTATS_ALLOWED_EMAILS` is a comma-separated string, not a `list[str]` field:
 pydantic-settings JSON-decodes complex-typed fields from the environment and would crash

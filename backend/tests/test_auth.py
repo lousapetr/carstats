@@ -82,6 +82,19 @@ def test_callback_rejects_an_account_off_the_list(anon_client, monkeypatch):
     assert anon_client.get("/auth/me").status_code == 401
 
 
+def test_dropping_an_address_from_the_list_kills_its_live_session(anon_client, monkeypatch):
+    monkeypatch.setattr(settings, "allowed_emails", "me@example.com,partner@example.com")
+    _callback_with_userinfo(
+        anon_client, monkeypatch, {"email": "partner@example.com", "email_verified": True}
+    )
+    assert anon_client.get("/api/car").status_code == 200
+
+    # Same client, same cookie — only the allowlist changed.
+    monkeypatch.setattr(settings, "allowed_emails", "me@example.com")
+    assert anon_client.get("/api/car").status_code == 401
+    assert anon_client.get("/auth/me").status_code == 401
+
+
 @pytest.mark.parametrize("verified", [False, None, "false"])
 def test_callback_rejects_an_unverified_email(anon_client, monkeypatch, verified):
     monkeypatch.setattr(settings, "allowed_emails", "me@example.com")

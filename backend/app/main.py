@@ -17,6 +17,11 @@ from app.fuel.router import router as fuel_router
 from app.maintenance.router import router as maintenance_router
 from app.reminders.router import router as reminders_router
 
+# 30 days, deliberately long so the phone-installed PWA doesn't ask for a
+# Google sign-in every time it's opened. Safe to keep that long because
+# get_current_user_email re-checks the allowlist on every request, so a cookie
+# outliving its owner's access is rejected regardless of how much life it has
+# left.
 SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
 
 app = FastAPI(title="CarStats")

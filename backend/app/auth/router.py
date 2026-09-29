@@ -7,6 +7,7 @@ from fastapi.responses import RedirectResponse
 from app.auth.oauth import google_client
 from app.auth.service import is_email_allowed
 from app.core.config import settings
+from app.core.security import CurrentUser
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -45,11 +46,8 @@ async def callback(request: Request) -> RedirectResponse:
 
 
 @router.get("/me")
-def me(request: Request) -> dict[str, str]:
-    email = request.session.get("user_email")
-    if not email:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    return {"email": email}
+def me(user: CurrentUser) -> dict[str, str]:
+    return {"email": user}
 
 
 @router.post("/logout")
