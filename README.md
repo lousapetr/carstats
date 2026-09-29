@@ -29,7 +29,9 @@ Run tests: `uv run pytest`. Lint: `uv run ruff check .`.
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev     # live reload on :5173
+# or
+npm run build   # refresh what the backend serves on :8000
 ```
 
 Runs on `http://localhost:5173` and proxies `/api` and `/auth` to the backend
