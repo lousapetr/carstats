@@ -1,10 +1,13 @@
 import mimetypes
 import os
+from typing import override
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.responses import Response
+from starlette.types import Scope
 
 from app.attachments.router import router as attachments_router
 from app.auth.router import router as auth_router
@@ -23,6 +26,18 @@ from app.reminders.router import router as reminders_router
 # outliving its owner's access is rejected regardless of how much life it has
 # left.
 SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
+
+# Vite content-hashes everything under /assets/, so a changed file arrives
+# under a new URL and the old one can be kept forever. The dist root keeps its
+# filenames across builds (index.html, sw.js, registerSW.js, the manifest, the
+# icons), so those must be revalidated instead -- "no-cache" still stores the
+# file, it just forces the conditional request that FileResponse answers with a
+# 304 from its ETag. Both are set explicitly because a response with no
+# Cache-Control gets one invented for it: Cloudflare applies its Browser Cache
+# TTL, and browsers fall back to heuristic freshness. Either can pin a stale
+# service worker for hours, which strands the PWA on the previous deploy.
+IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable"
+REVALIDATE_CACHE_CONTROL = "no-cache"
 
 app = FastAPI(title="CarStats")
 app.add_middleware(
@@ -45,10 +60,29 @@ app.include_router(export_router, prefix="/api")
 
 mimetypes.add_type("application/manifest+json", ".webmanifest")
 
+
+class _ImmutableStaticFiles(StaticFiles):
+    @override
+    def file_response(
+        self,
+        full_path: str | os.PathLike[str],
+        stat_result: os.stat_result,
+        scope: Scope,
+        status_code: int = 200,
+    ) -> Response:
+        response = super().file_response(full_path, stat_result, scope, status_code)
+        response.headers["Cache-Control"] = IMMUTABLE_CACHE_CONTROL
+        return response
+
+
 _dist_dir = settings.frontend_dist_dir
 if os.path.isdir(_dist_dir):
     _dist_dir_abs = os.path.abspath(_dist_dir)
-    app.mount("/assets", StaticFiles(directory=f"{_dist_dir_abs}/assets"), name="assets")
+    app.mount(
+        "/assets",
+        _ImmutableStaticFiles(directory=f"{_dist_dir_abs}/assets"),
+        name="assets",
+    )
 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str) -> FileResponse:
@@ -63,6 +97,7 @@ if os.path.isdir(_dist_dir):
         # Path is resolved and re-checked against _dist_dir_abs to prevent
         # directory traversal via a crafted full_path (e.g. "../../etc/passwd").
         candidate = os.path.abspath(os.path.join(_dist_dir_abs, full_path))
+        headers = {"Cache-Control": REVALIDATE_CACHE_CONTROL}
         if full_path and candidate.startswith(_dist_dir_abs + os.sep) and os.path.isfile(candidate):
-            return FileResponse(candidate)
-        return FileResponse(f"{_dist_dir_abs}/index.html")
+            return FileResponse(candidate, headers=headers)
+        return FileResponse(f"{_dist_dir_abs}/index.html", headers=headers)
