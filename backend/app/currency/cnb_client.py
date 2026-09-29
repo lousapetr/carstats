@@ -20,14 +20,21 @@ def parse_rates(text: str) -> dict[Currency, float]:
     Format is two header lines (date + column names) followed by one row
     per currency: Country|Currency|Amount|Code|Rate. Amount matters — some
     currencies (e.g. HUF) are quoted per 100 units, not per 1.
+
+    A row we cannot make sense of is skipped rather than fatal, so one
+    malformed line costs that one currency instead of the whole fixing.
     """
     rates: dict[Currency, float] = {}
     lines = text.strip().splitlines()[2:]
     for line in lines:
-        _country, _name, amount, code, rate = line.split("|")
         try:
+            _country, _name, amount, code, rate = line.split("|")
             currency = Currency(code)
+            units = float(amount)
+            value = float(rate)
         except ValueError:
             continue
-        rates[currency] = float(rate) / float(amount)
+        if units == 0:
+            continue
+        rates[currency] = value / units
     return rates

@@ -41,6 +41,9 @@ Romania|leu|1|RON|5.05
 
 @pytest.fixture(autouse=True)
 def _stub_cnb_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The failed-fetch backoff lives in a module-level global, so reset it between
+    # tests or one test's simulated outage suppresses the next test's fetch.
+    monkeypatch.setattr("app.currency.service._last_failed_fetch_at", None)
     monkeypatch.setattr("app.currency.cnb_client.fetch_daily_text", lambda: CNB_SAMPLE_TEXT)
 
 

@@ -92,7 +92,13 @@ multi-vehicle table.
 `CurrencyRate` holds one `rate_to_czk` per non-CZK currency (CZK is always 1.0, not
 stored), lazily seeded from `DEFAULT_RATES_TO_CZK` and then refreshed from the ČNB daily
 fixing at most once per calendar day (`_ensure_rates_fresh`); a failed or unparseable fetch
-logs a warning and keeps the cached rates. Rates are read-only to the user — there is no
+logs a warning and keeps the cached rates, then backs off for `FETCH_RETRY_AFTER` rather than
+pinning the whole day. That once-a-day check reads the newest row's `updated_at`, so seeded
+rows are stamped `SEEDED_AT` (1970) instead of "now" — `updated_at` means "when ČNB last told
+us this rate", and a seeded-only table must not look fresh. `parse_rates` skips a row it cannot
+make sense of instead of discarding the whole fixing, and `_ensure_rates_fresh` catches broadly
+on top of that, because it runs inside entry creation and must never 500 it. Rates are
+read-only to the user — there is no
 `PUT`, and the fuel/maintenance forms show the current rate disabled, for information only.
 
 Every `FuelEntry`/`ServiceEntry` stores the *original* currency/amount plus a copy of the

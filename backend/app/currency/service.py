@@ -1,7 +1,6 @@
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
-import httpx
 from sqlmodel import Session, col, select
 
 from app.currency import cnb_client
@@ -9,11 +8,27 @@ from app.currency.models import DEFAULT_RATES_TO_CZK, Currency, CurrencyRate
 
 logger = logging.getLogger(__name__)
 
+# Seeded rows carry this instead of "now" so a table that has only ever been
+# seeded never looks like it holds a real fixing. `updated_at` therefore means
+# "when the ČNB last told us this rate", which is what the freshness check below
+# needs to know.
+SEEDED_AT = datetime(1970, 1, 1, tzinfo=UTC)
+
+# How long a failed fetch suppresses the next attempt. Without it, every request
+# made while ČNB is unreachable pays the HTTP client's full timeout again.
+FETCH_RETRY_AFTER = timedelta(minutes=15)
+
+_last_failed_fetch_at: datetime | None = None
+
 
 def _get_or_seed_row(db: Session, currency: Currency) -> CurrencyRate:
     row = db.exec(select(CurrencyRate).where(CurrencyRate.currency == currency)).first()
     if row is None:
-        row = CurrencyRate(currency=currency, rate_to_czk=DEFAULT_RATES_TO_CZK[currency])
+        row = CurrencyRate(
+            currency=currency,
+            rate_to_czk=DEFAULT_RATES_TO_CZK[currency],
+            updated_at=SEEDED_AT,
+        )
         db.add(row)
         db.commit()
         db.refresh(row)
@@ -36,20 +51,31 @@ def _ensure_rates_fresh(db: Session) -> None:
     cached fetch instead of hitting the network per entry (or on a fixed
     schedule regardless of whether the app is even used that day).
     """
+    global _last_failed_fetch_at
+
+    now = datetime.now(UTC)
     latest = db.exec(select(CurrencyRate).order_by(col(CurrencyRate.updated_at).desc())).first()
-    if latest is not None and latest.updated_at.date() >= datetime.now(UTC).date():
+    if latest is not None and latest.updated_at.date() >= now.date():
+        return
+    if _last_failed_fetch_at is not None and now - _last_failed_fetch_at < FETCH_RETRY_AFTER:
         return
     try:
         rates = cnb_client.parse_rates(cnb_client.fetch_daily_text())
-    except (httpx.HTTPError, OSError, ValueError) as exc:
+    except Exception as exc:
+        # Deliberately broad: this is a best-effort refresh whose contract is to
+        # keep the cached rates on *any* failure. Letting one escape would 500 the
+        # entry creation it runs inside, which is the app's whole job.
+        _last_failed_fetch_at = now
         # Keep whatever we have (seeded defaults or a previous day's cache),
         # but say so: entries snapshot the rate at write time, so a silently
-        # stale rate gets baked into everything logged today.
+        # stale rate gets baked into everything logged until the retry lands.
         logger.warning("ČNB rate fetch failed, keeping cached rates: %s", exc, exc_info=True)
         return
     if not rates:
+        _last_failed_fetch_at = now
         logger.warning("ČNB rate fetch returned no known currencies, keeping cached rates")
         return
+    _last_failed_fetch_at = None
     for currency, rate in rates.items():
         if currency in DEFAULT_RATES_TO_CZK:
             _ = update_rate(db, currency, rate)

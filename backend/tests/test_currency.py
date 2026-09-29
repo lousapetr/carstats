@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from app.currency.cnb_client import parse_rates
 from app.currency.models import Currency
@@ -75,3 +76,82 @@ def test_unparseable_cnb_response_falls_back_and_logs(client, monkeypatch, caplo
     eur = next(r for r in response.json() if r["currency"] == "EUR")
     assert eur["rate_to_czk"] == 25.20
     assert "keeping cached rates" in caplog.text
+
+
+def test_parse_rates_skips_rows_with_zero_amount():
+    text = CNB_SAMPLE.replace("Hungary|forint|100|HUF|6.234", "Hungary|forint|0|HUF|6.234")
+
+    rates = parse_rates(text)
+
+    assert Currency.HUF not in rates
+    assert rates[Currency.EUR] == 25.185
+
+
+def test_parse_rates_skips_malformed_rows():
+    text = CNB_SAMPLE.replace("Hungary|forint|100|HUF|6.234", "Hungary|forint|HUF")
+
+    rates = parse_rates(text)
+
+    assert Currency.HUF not in rates
+    assert rates[Currency.EUR] == 25.185
+
+
+def test_parse_rates_returns_empty_for_an_entirely_malformed_feed():
+    assert parse_rates("05.09.2026 #172\nCountry|Currency|Amount|Code|Rate\nnonsense\n") == {}
+
+
+def test_zero_amount_in_the_feed_does_not_break_entry_creation(client, monkeypatch):
+    """A zero Amount column used to raise ZeroDivisionError past the caller's
+    except tuple and 500 the request (issue #7)."""
+    monkeypatch.setattr(
+        "app.currency.cnb_client.fetch_daily_text",
+        lambda: CNB_SAMPLE.replace("EMU|euro|1|EUR|25.185", "EMU|euro|0|EUR|25.185"),
+    )
+
+    response = client.post(
+        "/api/fuel-entries",
+        json={
+            "date": "2026-09-05",
+            "mileage_km": 10500,
+            "liters": 40,
+            "price_per_liter": 1.5,
+            "currency": "EUR",
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["exchange_rate"] == 25.20  # DEFAULT_RATES_TO_CZK fallback
+
+
+def test_failed_fetch_does_not_pin_seeded_defaults_for_the_rest_of_the_day(client, monkeypatch):
+    """Seeding used to stamp updated_at=now, which made the cache look fresh and
+    suppressed every retry that day (issue #6)."""
+    monkeypatch.setattr("app.currency.service.FETCH_RETRY_AFTER", timedelta(0))
+    monkeypatch.setattr(
+        "app.currency.cnb_client.fetch_daily_text",
+        lambda: (_ for _ in ()).throw(ConnectionError("network down")),
+    )
+
+    first = client.get("/api/currency-rates").json()
+    assert next(r for r in first if r["currency"] == "EUR")["rate_to_czk"] == 25.20
+
+    monkeypatch.setattr("app.currency.cnb_client.fetch_daily_text", lambda: CNB_SAMPLE)
+
+    second = client.get("/api/currency-rates").json()
+    assert next(r for r in second if r["currency"] == "EUR")["rate_to_czk"] == 25.185
+
+
+def test_failed_fetch_backs_off_before_retrying(client, monkeypatch):
+    calls = 0
+
+    def failing_fetch() -> str:
+        nonlocal calls
+        calls += 1
+        raise ConnectionError("network down")
+
+    monkeypatch.setattr("app.currency.cnb_client.fetch_daily_text", failing_fetch)
+
+    client.get("/api/currency-rates")
+    client.get("/api/currency-rates")
+
+    assert calls == 1
