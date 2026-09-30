@@ -26,30 +26,6 @@ class ServiceTimelineItem(BaseModel):
 TimelineItem = FuelTimelineItem | ServiceTimelineItem
 
 
-class DashboardSummary(BaseModel):
-    """All monetary fields are CZK-converted, regardless of the original
-    currency each entry was logged in — the dashboard is always shown in Kč.
-    """
-
-    car: CarProfileRead
-    total_fuel_cost: float
-    total_fuel_liters: float
-    total_fuel_entries: int
-    total_maintenance_cost: float
-    total_maintenance_entries: int
-    total_cost: float
-    total_cost_this_year: float
-    total_cost_last_year: float
-    cost_per_km: float | None
-    # Distance-weighted over full-to-full intervals; the per-year figures cover
-    # the intervals closed in that year, and are None when there are none.
-    avg_consumption_l_per_100km: float | None
-    avg_consumption_l_per_100km_this_year: float | None
-    avg_consumption_l_per_100km_last_year: float | None
-    upcoming_reminders: list[ReminderRead]
-    recent_activity: list[TimelineItem]
-
-
 class FuelTrendPoint(BaseModel):
     """price_total/price_per_liter are CZK-converted."""
 
