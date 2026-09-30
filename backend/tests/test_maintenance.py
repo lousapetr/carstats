@@ -106,3 +106,15 @@ def test_create_service_entry_rejects_out_of_range_values(client, override):
     response = client.post("/api/service-entries", json=payload | override)
     assert response.status_code == 422
     assert client.get("/api/service-entries").json() == []
+
+
+def test_same_day_service_entries_are_ordered_by_mileage(client):
+    for mileage_km in (10300, 10000, 10100):
+        response = client.post(
+            "/api/service-entries",
+            json={"date": "2026-08-22", "mileage_km": mileage_km, "type": "other", "cost": 10},
+        )
+        assert response.status_code == 201, response.text
+
+    entries = client.get("/api/service-entries").json()
+    assert [e["mileage_km"] for e in entries] == [10300, 10100, 10000]

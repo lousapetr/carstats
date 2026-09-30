@@ -90,7 +90,11 @@ def delete_entry(db: Session, entry: ServiceEntry) -> None:
 
 
 def list_entries(db: Session) -> list[ServiceEntryRead]:
-    entries = db.exec(select(ServiceEntry).order_by(col(ServiceEntry.date).desc())).all()
+    entries = db.exec(
+        select(ServiceEntry).order_by(
+            col(ServiceEntry.mileage_km).desc(), col(ServiceEntry.id).desc()
+        )
+    ).all()
     # One query for all attachments rather than one per entry.
     entry_ids = [entry.id for entry in entries if entry.id is not None]
     by_entry: dict[int, list[Attachment]] = defaultdict(list)

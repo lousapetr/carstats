@@ -84,6 +84,11 @@ Even though it's named for the `car` domain, `car/service.py` holds two helpers 
   `ValueError` (→ HTTP 400) otherwise. This allows historical backfill out of chronological
   upload order while still catching typos.
 
+Because mileage is validated to rise with date, it is also the **ordering key** for fuel and
+service entries everywhere — lists, exports, charts and the dashboard activity log sort by
+`mileage_km` (then `id`), never by `date`: two fill-ups on one day are common, and a date sort
+leaves them in arbitrary order.
+
 `CarProfile` itself is a lazily-created singleton row (`get_or_create_profile`), not a
 multi-vehicle table.
 

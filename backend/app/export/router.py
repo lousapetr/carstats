@@ -27,7 +27,9 @@ def _csv_response(rows: list[list[str]], header: list[str], filename: str) -> St
 
 @router.get("/fuel.csv")
 def export_fuel_csv(user: CurrentUser, db: DbSession) -> StreamingResponse:
-    entries = db.exec(select(FuelEntry).order_by(col(FuelEntry.date))).all()
+    entries = db.exec(
+        select(FuelEntry).order_by(col(FuelEntry.mileage_km), col(FuelEntry.id))
+    ).all()
     rows = [
         [
             str(e.date),
@@ -56,7 +58,9 @@ def export_fuel_csv(user: CurrentUser, db: DbSession) -> StreamingResponse:
 
 @router.get("/maintenance.csv")
 def export_maintenance_csv(user: CurrentUser, db: DbSession) -> StreamingResponse:
-    entries = db.exec(select(ServiceEntry).order_by(col(ServiceEntry.date))).all()
+    entries = db.exec(
+        select(ServiceEntry).order_by(col(ServiceEntry.mileage_km), col(ServiceEntry.id))
+    ).all()
     rows = [
         [
             str(e.date),

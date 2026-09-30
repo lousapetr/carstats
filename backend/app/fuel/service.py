@@ -101,7 +101,7 @@ def _compute_consumptions(entries: Sequence[FuelEntry]) -> dict[int, float | Non
 
 
 def _entries_oldest_first(db: Session) -> Sequence[FuelEntry]:
-    return db.exec(select(FuelEntry).order_by(col(FuelEntry.mileage_km))).all()
+    return db.exec(select(FuelEntry).order_by(col(FuelEntry.mileage_km), col(FuelEntry.id))).all()
 
 
 def _consumption_for_entry(db: Session, entry: FuelEntry) -> float | None:
