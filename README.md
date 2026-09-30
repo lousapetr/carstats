@@ -173,6 +173,10 @@ inside the volume first, stops the `app` container while the files are
 swapped in, and starts it again — the entrypoint runs `alembic upgrade head`,
 so an older backup is migrated forward on the way up.
 
+Migration downgrades are not supported: `alembic downgrade` past a migration
+that would lose data (e.g. the currency or `full_tank` columns) refuses to run.
+Recovering from a bad deploy means restoring a backup as above.
+
 ### Keeping the VM patched
 
 OS updates stay out of `deploy.sh`: a repo failure there would abort the script

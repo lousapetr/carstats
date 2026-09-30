@@ -84,20 +84,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    with op.batch_alter_table('serviceentry') as batch_op:
-        batch_op.drop_column('exchange_rate')
-        batch_op.drop_column('currency')
-
-    with op.batch_alter_table('fuelentry') as batch_op:
-        batch_op.add_column(sa.Column('price_total', sa.Float(), nullable=True))
-    op.execute("UPDATE fuelentry SET price_total = price_per_liter * liters")
-    with op.batch_alter_table('fuelentry') as batch_op:
-        batch_op.alter_column('price_total', nullable=False)
-        batch_op.drop_column('exchange_rate')
-        batch_op.drop_column('currency')
-        batch_op.drop_column('price_per_liter')
-
-    with op.batch_alter_table('carprofile') as batch_op:
-        batch_op.drop_column('name')
-
-    op.drop_table('currencyrate')
+    raise NotImplementedError(
+        "Tato migrace není vratná: zpětný krok by nenávratně smazal currency, "
+        "exchange_rate a název auta. Obnov ze zálohy (restore.sh)."
+    )
