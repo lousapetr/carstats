@@ -328,3 +328,14 @@ def test_activity_shows_each_fill_ups_price_per_liter_in_czk(client):
 
     activity = _dashboard(client)["recent_activity"]
     assert activity[0]["price_per_liter"] == round(1.5 * exchange_rate, 3)
+
+
+def test_same_day_entries_are_ordered_by_mileage(client):
+    # Logged out of order on purpose: the later fill-up of the day first.
+    _fuel(client, "2026-08-22", 10300, 30)
+    _fuel(client, "2026-08-22", 10000, 20)
+    _service(client, "2026-08-22", 10100, 50)
+
+    dashboard = _dashboard(client)
+    assert [a["cost"] for a in dashboard["recent_activity"]] == [30, 50, 20]
+    assert [p["liters"] for p in dashboard["fuel_trend"]] == [20, 30]

@@ -154,25 +154,34 @@ def _cost_breakdown(fuel: Sequence[FuelEntry], service: Sequence[ServiceEntry]) 
 
 
 def _timeline(fuel: Sequence[FuelEntry], service: Sequence[ServiceEntry]) -> list[TimelineItem]:
-    timeline: list[TimelineItem] = [
-        FuelTimelineItem(
-            date=e.date,
-            cost=round(_fuel_cost_czk(e), 2),
-            liters=e.liters,
-            price_per_liter=round(e.price_per_liter * e.exchange_rate, 3),
+    # Newest first by odometer rather than date, which can't order two
+    # entries logged on the same day.
+    by_mileage: list[tuple[float, TimelineItem]] = [
+        (
+            e.mileage_km,
+            FuelTimelineItem(
+                date=e.date,
+                cost=round(_fuel_cost_czk(e), 2),
+                liters=e.liters,
+                price_per_liter=round(e.price_per_liter * e.exchange_rate, 3),
+            ),
         )
         for e in fuel
     ]
-    timeline += [
-        ServiceTimelineItem(
-            date=e.date,
-            cost=round(_service_cost_czk(e), 2),
-            service_type=e.type,
-            description=e.description,
+    by_mileage += [
+        (
+            e.mileage_km,
+            ServiceTimelineItem(
+                date=e.date,
+                cost=round(_service_cost_czk(e), 2),
+                service_type=e.type,
+                description=e.description,
+            ),
         )
         for e in service
     ]
-    timeline.sort(key=lambda item: item.date, reverse=True)
+    by_mileage.sort(key=lambda pair: pair[0], reverse=True)
+    timeline = [item for _, item in by_mileage]
     return timeline[:RECENT_ACTIVITY_LIMIT]
 
 
@@ -234,7 +243,8 @@ def get_dashboard(db: Session, period: str, today: date | None = None) -> Dashbo
             price_per_liter=e.price_per_liter_czk,
             consumption_l_per_100km=e.consumption_l_per_100km,
         )
-        for e in sorted(list_entries_with_stats(db), key=lambda e: e.date)
+        # Oldest first by odometer, not date, so same-day fill-ups stay in order.
+        for e in reversed(list_entries_with_stats(db))
         if window.contains(e.date)
     ]
 
