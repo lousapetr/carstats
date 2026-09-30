@@ -113,6 +113,29 @@ fixing never retroactively changes past dashboard totals — the dashboard
 rate, never today's. When adding new money fields, follow this pattern rather than
 converting on read.
 
+### Dashboard: one period-scoped endpoint
+
+`GET /api/dashboard?period=…` is the dashboard's only endpoint and returns everything the page
+shows, so one `date.today()` scopes it all and one selector change is one refetch. `period` is
+`all | ytd | 12m | year:YYYY` (default `all`, `PERIOD_PATTERN` in `dashboard/periods.py`; anything
+else is a 422). `12m` is the current month plus the eleven before it; `ytd` is compared with the
+*same stretch* of last year (29 Feb falls back to the 28th), not the whole year. `all` has no
+previous window, so no deltas.
+
+Two filtering rules live side by side in `get_dashboard`, on purpose: **costs filter entries** by
+date, but **consumption filters intervals** — `full_to_full_intervals()` runs over the whole fuel
+history, then intervals are kept by the date of the full tank that closes them. Filtering entries
+first would drop an interval straddling the window start and understate the first one (a partial
+fill just before the boundary goes missing). An interval therefore belongs wholly to the period it
+closed in, which is also where its figure shows in the fuel log. Don't touch `fuel/service.py` to
+change this; call it differently. `distance_km` starts from the newest reading *before* the window.
+
+`car` (the odometer) and `upcoming_reminders` are deliberately *not* period-scoped; the page puts
+them above the selector to say so. The selected period lives only in the URL (`?period=`), and the
+query key is `['dashboard', period]`, so the log pages' `invalidateQueries(['dashboard'])` still
+covers every period. Labels ("Letos", "vs. 2025") are composed on the frontend
+(`lib/periods.ts`); the API returns keys and dates, never Czech text.
+
 ### Auth
 
 Server-side session cookie only (Starlette `SessionMiddleware`, no JWT/localStorage).
