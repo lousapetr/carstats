@@ -13,6 +13,7 @@ class FuelTimelineItem(BaseModel):
     kind: Literal["fuel"] = "fuel"
     cost: float
     liters: float
+    price_per_liter: float  # CZK-converted, like cost
 
 
 class ServiceTimelineItem(BaseModel):

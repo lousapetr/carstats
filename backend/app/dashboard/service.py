@@ -155,7 +155,12 @@ def _cost_breakdown(fuel: Sequence[FuelEntry], service: Sequence[ServiceEntry]) 
 
 def _timeline(fuel: Sequence[FuelEntry], service: Sequence[ServiceEntry]) -> list[TimelineItem]:
     timeline: list[TimelineItem] = [
-        FuelTimelineItem(date=e.date, cost=round(_fuel_cost_czk(e), 2), liters=e.liters)
+        FuelTimelineItem(
+            date=e.date,
+            cost=round(_fuel_cost_czk(e), 2),
+            liters=e.liters,
+            price_per_liter=round(e.price_per_liter * e.exchange_rate, 3),
+        )
         for e in fuel
     ]
     timeline += [

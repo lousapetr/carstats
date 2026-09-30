@@ -310,3 +310,21 @@ def test_avg_price_per_liter_is_none_without_fuel(client):
     dashboard = _dashboard(client)
     assert dashboard["avg_price_per_liter"] is None
     assert dashboard["avg_price_per_liter_delta"] is None
+
+
+def test_activity_shows_each_fill_ups_price_per_liter_in_czk(client):
+    response = client.post(
+        "/api/fuel-entries",
+        json={
+            "date": "2026-08-01",
+            "mileage_km": 10000,
+            "liters": 40,
+            "price_per_liter": 1.5,
+            "currency": "EUR",
+        },
+    )
+    assert response.status_code == 201, response.text
+    exchange_rate = response.json()["exchange_rate"]
+
+    activity = _dashboard(client)["recent_activity"]
+    assert activity[0]["price_per_liter"] == round(1.5 * exchange_rate, 3)
