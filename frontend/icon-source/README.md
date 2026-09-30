@@ -5,6 +5,8 @@ Two SVGs ship: `../public/favicon.svg` (transparent, also used for the header
 logo and the apple-touch-icon) and `favicon-maskable.svg` (full-bleed on grey,
 for Android's adaptive icons). The four PNGs in `../public/` are rendered from
 those two. All of them are generated -- edit the sources here, not the output.
+The manifest lists only the `pwa-*.png` pair: Firefox + Nova Launcher show a
+maskable entry as a blank square (see the comment in `../vite.config.ts`).
 
 Everything needs only Python 3 and ImageMagick (`magick`).
 

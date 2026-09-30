@@ -36,18 +36,14 @@ export default defineConfig({
         // Bump icon= whenever the icon changes; id keeps the app's identity
         // stable for browsers that key on it instead.
         id: '/',
-        start_url: '/?icon=2',
+        start_url: '/?icon=3',
+        // PNGs only. Firefox on Android builds an adaptive launcher icon from
+        // any maskable entry, and Nova shows that as a blank gray square; with
+        // no maskable entry it pins a plain bitmap, which Nova draws. The
+        // maskable-icon-*.png files are still generated, just not listed.
         icons: [
-          // Transparent-background icon: "any" only. "maskable" needs a
-          // full-bleed, opaque design or it renders broken on Android's
-          // adaptive home-screen icon system.
-          { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          // Full-bleed variant with the car glyph confined to the safe zone,
-          // for Android/Nova Launcher's adaptive (maskable) home-screen icon.
-          { src: 'maskable-icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
-          { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
     }),
