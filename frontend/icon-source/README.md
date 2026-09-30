@@ -14,6 +14,8 @@ Everything needs only Python 3 and ImageMagick (`magick`).
 
 Writes both SVGs and re-renders `pwa-*.png` and `maskable-icon-*.png` at 192
 and 512. Run this after any change here, then commit the output alongside it.
+Also bump `icon=` in `start_url` in `../vite.config.ts`, or Android home
+screens keep showing the previous icon after a reinstall.
 
 ## The car
 

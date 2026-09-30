@@ -30,7 +30,13 @@ export default defineConfig({
         theme_color: '#111827',
         background_color: '#111827',
         display: 'standalone',
-        start_url: '/',
+        // Firefox on Android uses start_url as its home-screen shortcut's ID,
+        // and Android launchers keep a shortcut's icon under that ID, so a
+        // reinstall with an unchanged start_url brings the old icon back.
+        // Bump icon= whenever the icon changes; id keeps the app's identity
+        // stable for browsers that key on it instead.
+        id: '/',
+        start_url: '/?icon=2',
         icons: [
           // Transparent-background icon: "any" only. "maskable" needs a
           // full-bleed, opaque design or it renders broken on Android's
