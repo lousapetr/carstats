@@ -1,9 +1,10 @@
-import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import { ApiError } from './api/client'
+import { isUnauthorized, mutationErrorMessage, shouldRetryQuery } from './api/errors'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { LoginScreen } from './auth/LoginScreen'
 import { ConfirmDialogHost } from './components/ui/ConfirmDialogHost'
+import { ErrorState } from './components/ui/ErrorState'
 import { ToastHost } from './components/ui/ToastHost'
 import { DashboardPage } from './features/dashboard/DashboardPage'
 import { FuelLogPage } from './features/fuel/FuelLogPage'
@@ -13,23 +14,40 @@ import { SettingsPage } from './features/settings/SettingsPage'
 import { AppShell } from './layout/AppShell'
 import { emitErrorToast } from './lib/toastBus'
 
-const queryClient = new QueryClient({
+// A 401 mid-session means the cookie expired or the address was dropped from
+// the allowlist; clearing the cached user sends AuthGate back to the login screen.
+function signOutOnUnauthorized(error: unknown) {
+  if (isUnauthorized(error)) queryClient.setQueryData(['auth', 'me'], null)
+}
+
+// Failed reads render an inline ErrorState with a retry button on their own
+// page; failed writes toast, since the form they came from is still on screen.
+const queryClient: QueryClient = new QueryClient({
+  defaultOptions: { queries: { retry: shouldRetryQuery, staleTime: 30_000 } },
+  queryCache: new QueryCache({ onError: signOutOnUnauthorized }),
   mutationCache: new MutationCache({
     onError: (error) => {
-      if (error instanceof ApiError && (error.status === 400 || error.status === 422)) {
-        emitErrorToast(error.message)
-      }
+      emitErrorToast(mutationErrorMessage(error))
+      signOutOnUnauthorized(error)
     },
   }),
 })
 
 function AuthGate() {
-  const { email, isLoading } = useAuth()
+  const { email, isPending, isError, retry } = useAuth()
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center text-gray-400">
         Načítám…
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <ErrorState message="Nepodařilo se ověřit přihlášení." onRetry={retry} />
       </div>
     )
   }

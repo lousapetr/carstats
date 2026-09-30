@@ -4,6 +4,8 @@ import { carApi } from '../../api/car'
 import { exportApi } from '../../api/export'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
+import { ErrorState } from '../../components/ui/ErrorState'
+import { LoadingState } from '../../components/ui/LoadingState'
 import { Field, inputClass } from '../../components/ui/Field'
 import type { CarProfileInput } from '../../types'
 
@@ -13,7 +15,10 @@ const linkButtonClass =
 export function SettingsPage() {
   const queryClient = useQueryClient()
 
-  const { data: car } = useQuery({ queryKey: ['car'], queryFn: carApi.get })
+  const { data: car, isPending, isError, refetch } = useQuery({
+    queryKey: ['car'],
+    queryFn: carApi.get,
+  })
 
   const [form, setForm] = useState<CarProfileInput>({ name: '', make: '', model: '', year: null })
 
@@ -39,60 +44,68 @@ export function SettingsPage() {
         <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
           Údaje o autě
         </h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            updateCarMutation.mutate(form)
-          }}
-          className="grid grid-cols-2 gap-3"
-        >
-          <div className="col-span-2">
-            <Field label="Přezdívka">
+        {/* The form only renders once the profile has loaded: saving the blank
+            initial state would overwrite the stored car with empty fields. */}
+        {isPending && <LoadingState />}
+        {isError && (
+          <ErrorState message="Údaje o autě se nepodařilo načíst." onRetry={() => void refetch()} />
+        )}
+        {car && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              updateCarMutation.mutate(form)
+            }}
+            className="grid grid-cols-2 gap-3"
+          >
+            <div className="col-span-2">
+              <Field label="Přezdívka">
+                <input
+                  maxLength={200}
+                  type="text"
+                  className={inputClass}
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
+              </Field>
+            </div>
+            <Field label="Značka">
               <input
                 maxLength={200}
                 type="text"
                 className={inputClass}
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                value={form.make}
+                onChange={(e) => setForm({ ...form, make: e.target.value })}
               />
             </Field>
-          </div>
-          <Field label="Značka">
-            <input
-              maxLength={200}
-              type="text"
-              className={inputClass}
-              value={form.make}
-              onChange={(e) => setForm({ ...form, make: e.target.value })}
-            />
-          </Field>
-          <Field label="Model">
-            <input
-              maxLength={200}
-              type="text"
-              className={inputClass}
-              value={form.model}
-              onChange={(e) => setForm({ ...form, model: e.target.value })}
-            />
-          </Field>
-          <Field label="Rok výroby">
-            <input
-              type="number"
-              min={1900}
-              max={2100}
-              className={inputClass}
-              value={form.year ?? ''}
-              onChange={(e) =>
-                setForm({ ...form, year: e.target.value ? Number(e.target.value) : null })
-              }
-            />
-          </Field>
-          <div className="col-span-2">
-            <Button type="submit" disabled={updateCarMutation.isPending}>
-              {updateCarMutation.isPending ? 'Ukládám…' : 'Uložit'}
-            </Button>
-          </div>
-        </form>
+            <Field label="Model">
+              <input
+                maxLength={200}
+                type="text"
+                className={inputClass}
+                value={form.model}
+                onChange={(e) => setForm({ ...form, model: e.target.value })}
+              />
+            </Field>
+            <Field label="Rok výroby">
+              <input
+                type="number"
+                min={1900}
+                max={2100}
+                className={inputClass}
+                value={form.year ?? ''}
+                onChange={(e) =>
+                  setForm({ ...form, year: e.target.value ? Number(e.target.value) : null })
+                }
+              />
+            </Field>
+            <div className="col-span-2">
+              <Button type="submit" disabled={updateCarMutation.isPending}>
+                {updateCarMutation.isPending ? 'Ukládám…' : 'Uložit'}
+              </Button>
+            </div>
+          </form>
+        )}
       </Card>
 
       <Card>

@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { fuelApi } from '../../api/fuel'
 import { ActionMenu } from '../../components/ui/ActionMenu'
 import { Card } from '../../components/ui/Card'
+import { ErrorState } from '../../components/ui/ErrorState'
+import { LoadingState } from '../../components/ui/LoadingState'
 import { confirmDialog } from '../../lib/confirmBus'
 import { formatDate } from '../../lib/dates'
 import { formatConsumption, formatCzk, formatKm, formatLiters, formatMoney } from '../../lib/format'
@@ -25,7 +27,7 @@ export function FuelLogPage() {
   const queryClient = useQueryClient()
   const [editingEntry, setEditingEntry] = useState<FuelEntry | null>(null)
 
-  const { data: entries, isLoading } = useQuery({
+  const { data: entries, isPending, isError, refetch } = useQuery({
     queryKey: ['fuel-entries'],
     queryFn: fuelApi.list,
   })
@@ -73,7 +75,10 @@ export function FuelLogPage() {
         />
       </Card>
 
-      {isLoading && <p className="text-sm text-gray-500">Načítám…</p>}
+      {isPending && <LoadingState />}
+      {isError && (
+        <ErrorState message="Tankování se nepodařilo načíst." onRetry={() => void refetch()} />
+      )}
 
       <div className="flex flex-col gap-2">
         {entries?.map((entry) => (

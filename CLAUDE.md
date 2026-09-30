@@ -164,10 +164,17 @@ in `src/components/ui/`. Server state is TanStack Query; forms are react-hook-fo
 
 Error popups are not wired per-form: `App.tsx` configures the shared `QueryClient` with a
 `MutationCache.onError` that shows a toast (`lib/toastBus.ts` + `components/ui/ToastHost.tsx`)
-for any mutation failing with HTTP 400 or 422. A new form's validation errors get this for
-free — no per-mutation `onError` needed. Backend 400 `detail` messages are shown verbatim,
-so they must be written in Czech (see `car/service.py`, `attachments/storage.py`); a 422's
-`detail` is a list of pydantic errors, which `api/client.ts` flattens into one message.
+for every failed mutation. A new form's validation errors get this for free — no
+per-mutation `onError` needed. Only 400 and 422 `detail` messages are shown verbatim
+(`api/errors.ts::mutationErrorMessage`), so those must be written in Czech (see
+`car/service.py`, `attachments/storage.py`); a 422's `detail` is a list of pydantic errors,
+which `api/client.ts` flattens into one message. Any other status gets a generic Czech line.
+
+Failed *reads* don't toast: each page renders `components/ui/LoadingState` /
+`ErrorState` (with a retry button calling `refetch`) off the query's `isPending` /
+`isError` — use `isPending`, not `isLoading`, or a failed query shows "Načítám…" forever.
+Queries retry once, only on a network error or 5xx. A 401 from any query or mutation
+clears the cached `['auth', 'me']`, which drops the user back on the login screen.
 
 The forms hand `onSubmit` the mutation *promise* (`mutateAsync`) and clear themselves only
 once it resolves, so a rejected entry stays on screen to be corrected — don't go back to

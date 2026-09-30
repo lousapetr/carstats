@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { remindersApi } from '../../api/reminders'
 import { ActionMenu } from '../../components/ui/ActionMenu'
 import { Card } from '../../components/ui/Card'
+import { ErrorState } from '../../components/ui/ErrorState'
+import { LoadingState } from '../../components/ui/LoadingState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { confirmDialog } from '../../lib/confirmBus'
 import { formatDate } from '../../lib/dates'
@@ -25,7 +27,7 @@ export function RemindersPage() {
   const queryClient = useQueryClient()
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null)
 
-  const { data: reminders, isLoading } = useQuery({
+  const { data: reminders, isPending, isError, refetch } = useQuery({
     queryKey: ['reminders'],
     queryFn: remindersApi.list,
   })
@@ -78,7 +80,10 @@ export function RemindersPage() {
         />
       </Card>
 
-      {isLoading && <p className="text-sm text-gray-500">Načítám…</p>}
+      {isPending && <LoadingState />}
+      {isError && (
+        <ErrorState message="Připomínky se nepodařilo načíst." onRetry={() => void refetch()} />
+      )}
 
       <div className="flex flex-col gap-2">
         {reminders?.map((reminder) => (

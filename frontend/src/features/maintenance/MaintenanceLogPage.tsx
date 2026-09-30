@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { maintenanceApi } from '../../api/maintenance'
 import { ActionMenu } from '../../components/ui/ActionMenu'
 import { Card } from '../../components/ui/Card'
+import { ErrorState } from '../../components/ui/ErrorState'
+import { LoadingState } from '../../components/ui/LoadingState'
 import { confirmDialog } from '../../lib/confirmBus'
 import { formatDate } from '../../lib/dates'
 import { formatCzk, formatKm, formatMoney } from '../../lib/format'
@@ -27,7 +29,7 @@ export function MaintenanceLogPage() {
   const queryClient = useQueryClient()
   const [editingEntry, setEditingEntry] = useState<ServiceEntry | null>(null)
 
-  const { data: entries, isLoading } = useQuery({
+  const { data: entries, isPending, isError, refetch } = useQuery({
     queryKey: ['service-entries'],
     queryFn: maintenanceApi.list,
   })
@@ -76,7 +78,10 @@ export function MaintenanceLogPage() {
         />
       </Card>
 
-      {isLoading && <p className="text-sm text-gray-500">Načítám…</p>}
+      {isPending && <LoadingState />}
+      {isError && (
+        <ErrorState message="Servisní záznamy se nepodařilo načíst." onRetry={() => void refetch()} />
+      )}
 
       <div className="flex flex-col gap-2">
         {entries?.map((entry) => (

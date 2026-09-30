@@ -5,7 +5,11 @@ import { ApiError } from '../api/client'
 
 interface AuthContextValue {
   email: string | null
-  isLoading: boolean
+  isPending: boolean
+  // /auth/me failed for a reason other than 401 (a 5xx, the network) — shown
+  // as an error rather than the login screen, since the session may be fine.
+  isError: boolean
+  retry: () => void
   login: () => void
   logout: () => Promise<void>
 }
@@ -15,7 +19,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
 
-  const { data, isLoading } = useQuery({
+  const { data, isPending, isError, refetch } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
       try {
@@ -25,7 +29,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw err
       }
     },
-    retry: false,
+    // Signed-out is detected by any /api call's 401 (see App.tsx), so there is
+    // no need to re-ask on every window focus.
+    staleTime: Infinity,
   })
 
   const login = () => {
@@ -38,7 +44,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ email: data?.email ?? null, isLoading, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        email: data?.email ?? null,
+        isPending,
+        isError: isError && data === undefined,
+        retry: () => void refetch(),
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
