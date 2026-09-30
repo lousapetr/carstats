@@ -6,6 +6,7 @@ import { currencyApi } from '../../api/currency'
 import { Button } from '../../components/ui/Button'
 import { Field, inputClass } from '../../components/ui/Field'
 import { CURRENCIES, CURRENCY_CODES, CURRENCY_LABELS } from '../../lib/currencies'
+import { todayIso } from '../../lib/dates'
 import { SERVICE_TYPE_VALUES, SERVICE_TYPES } from '../../lib/serviceTypes'
 
 const emptyToUndefined = (val: unknown) => (val === '' ? undefined : val)
@@ -27,7 +28,7 @@ export type MaintenanceFormValues = z.output<typeof schema>
 type MaintenanceFormInput = z.input<typeof schema>
 
 const blankValues = (): DefaultValues<MaintenanceFormInput> => ({
-  date: new Date().toISOString().slice(0, 10),
+  date: todayIso(),
   type: 'oil_change',
   currency: 'CZK',
 })
