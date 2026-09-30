@@ -7,6 +7,11 @@ const twoDecimals = new Intl.NumberFormat(LOCALE, {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 })
+// Pump prices are often quoted to a tenth of a cent (1,659 EUR/l).
+const unitPrice = new Intl.NumberFormat(LOCALE, {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 3,
+})
 const upToTwoDecimals = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 2 })
 const consumption = new Intl.NumberFormat(LOCALE, {
   minimumFractionDigits: 1,
@@ -27,8 +32,13 @@ export function formatMoney(amount: number, currency: Currency): string {
   return `${twoDecimals.format(amount)} ${currency}`
 }
 
+/** A per-litre price in the currency it was logged in, e.g. `1,659 EUR/l`. */
+export function formatMoneyPerLiter(amount: number, currency: Currency): string {
+  return `${unitPrice.format(amount)} ${currency}/l`
+}
+
 export function formatPricePerLiter(value: number): string {
-  return `${twoDecimals.format(value)} Kč/l`
+  return `${unitPrice.format(value)} Kč/l`
 }
 
 export function formatKm(value: number): string {

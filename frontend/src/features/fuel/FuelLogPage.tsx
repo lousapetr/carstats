@@ -7,7 +7,14 @@ import { ErrorState } from '../../components/ui/ErrorState'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { confirmDialog } from '../../lib/confirmBus'
 import { formatDate } from '../../lib/dates'
-import { formatConsumption, formatCzk, formatKm, formatLiters, formatMoney } from '../../lib/format'
+import {
+  formatConsumption,
+  formatCzk,
+  formatKm,
+  formatLiters,
+  formatMoney,
+  formatMoneyPerLiter,
+} from '../../lib/format'
 import type { FuelEntry, FuelEntryInput } from '../../types'
 import { FuelForm } from './FuelForm'
 
@@ -93,7 +100,9 @@ export function FuelLogPage() {
                 )}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                {formatLiters(entry.liters)} · {formatMoney(entry.price_total, entry.currency)}
+                {formatLiters(entry.liters)} ·{' '}
+                {formatMoneyPerLiter(entry.price_per_liter, entry.currency)} ·{' '}
+                {formatMoney(entry.price_total, entry.currency)}
                 {entry.currency !== 'CZK' && ` (${formatCzk(entry.price_total_czk)})`}
                 {entry.full_tank &&
                   (entry.consumption_l_per_100km !== null
