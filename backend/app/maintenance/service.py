@@ -2,6 +2,7 @@ from collections import defaultdict
 
 from sqlmodel import Session, col, select
 
+from app.attachments import storage
 from app.attachments.models import Attachment, AttachmentRead
 from app.car.service import (
     recalculate_current_mileage,
@@ -77,15 +78,24 @@ def update_entry(db: Session, entry: ServiceEntry, data: ServiceEntryCreate) -> 
 
 
 def delete_entry(db: Session, entry: ServiceEntry) -> None:
+    assert entry.id is not None
+    entry_id = entry.id
+    for attachment in _attachments_for(db, entry):
+        db.delete(attachment)
     db.delete(entry)
     db.commit()
+    # Files go only after the commit, so a failed delete never leaves rows pointing at nothing.
+    storage.delete_entry_dir(entry_id)
     recalculate_current_mileage(db)
 
 
 def list_entries(db: Session) -> list[ServiceEntryRead]:
     entries = db.exec(select(ServiceEntry).order_by(col(ServiceEntry.date).desc())).all()
     # One query for all attachments rather than one per entry.
+    entry_ids = [entry.id for entry in entries if entry.id is not None]
     by_entry: dict[int, list[Attachment]] = defaultdict(list)
-    for attachment in db.exec(select(Attachment)).all():
+    for attachment in db.exec(
+        select(Attachment).where(col(Attachment.service_entry_id).in_(entry_ids))
+    ).all():
         by_entry[attachment.service_entry_id].append(attachment)
     return [_to_read(entry, by_entry[entry.id]) for entry in entries if entry.id is not None]

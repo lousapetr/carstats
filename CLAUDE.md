@@ -179,6 +179,10 @@ once it resolves, so a rejected entry stays on screen to be corrected — don't 
 (authenticated) and `anon_client` (unauthenticated, for 401 checks) fixtures — tests never
 touch the real dev `data/carstats.db`.
 
+SQLite FK enforcement is per-engine, via `enable_sqlite_foreign_keys()` in
+`core/database.py`; any new engine (including a test fixture's) must call it, or
+`ON DELETE CASCADE` silently does nothing. Alembic's engine deliberately does not.
+
 ## Deployment
 
 Single Docker image (multi-stage: Node build → Python runtime) serving both the API and

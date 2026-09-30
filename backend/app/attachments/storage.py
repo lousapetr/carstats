@@ -1,3 +1,4 @@
+import shutil
 import uuid
 from pathlib import Path
 
@@ -65,3 +66,7 @@ def absolute_path(relative_path: str) -> Path:
 def delete_file(relative_path: str) -> None:
     path = absolute_path(relative_path)
     path.unlink(missing_ok=True)
+
+
+def delete_entry_dir(service_entry_id: int) -> None:
+    shutil.rmtree(Path(settings.uploads_dir) / str(service_entry_id), ignore_errors=True)

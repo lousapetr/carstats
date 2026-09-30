@@ -102,3 +102,23 @@ def test_listing_keeps_attachments_with_their_own_entry(client, monkeypatch, tmp
     by_id = {e["id"]: e for e in client.get("/api/service-entries").json()}
     assert [a["filename"] for a in by_id[first["id"]]["attachments"]] == ["first.pdf"]
     assert [a["filename"] for a in by_id[second["id"]]["attachments"]] == ["second.pdf"]
+
+
+def test_deleting_entry_removes_its_attachments_and_they_never_reappear(
+    client, monkeypatch, tmp_path
+):
+    monkeypatch.setattr(settings, "uploads_dir", str(tmp_path))
+    entry = _create_service_entry(client)
+    attachment = client.post(
+        f"/api/service-entries/{entry['id']}/attachments",
+        files={"file": ("invoice.pdf", io.BytesIO(b"data"), "application/pdf")},
+    ).json()
+
+    assert client.delete(f"/api/service-entries/{entry['id']}").status_code == 204
+    assert client.get(f"/api/attachments/{attachment['id']}/download").status_code == 404
+    assert list(tmp_path.iterdir()) == []
+
+    new_entry = _create_service_entry(client)
+    # SQLite hands out the freed id again; the deleted entry's invoice must not follow it.
+    assert new_entry["id"] == entry["id"]
+    assert client.get("/api/service-entries").json()[0]["attachments"] == []

@@ -13,7 +13,7 @@ os.environ.setdefault("CARSTATS_SESSION_SECRET", "test-" + "x" * 40)
 # Import every model module so SQLModel.metadata is fully populated.
 from app.attachments import models as _attachments_models  # noqa: E402, F401
 from app.car import models as _car_models  # noqa: E402, F401
-from app.core.database import get_db  # noqa: E402
+from app.core.database import enable_sqlite_foreign_keys, get_db  # noqa: E402
 from app.core.security import get_current_user_email  # noqa: E402
 from app.currency import models as _currency_models  # noqa: E402, F401
 from app.fuel import models as _fuel_models  # noqa: E402, F401
@@ -51,6 +51,7 @@ def _stub_cnb_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
 def client() -> Generator[TestClient, None, None]:
     db_fd, db_path = tempfile.mkstemp(suffix=".db")
     engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+    enable_sqlite_foreign_keys(engine)
     SQLModel.metadata.create_all(engine)
 
     def override_get_db() -> Generator[Session, None, None]:
@@ -75,6 +76,7 @@ def anon_client() -> Generator[TestClient, None, None]:
     """A client with no authenticated user, for testing the 401 path."""
     db_fd, db_path = tempfile.mkstemp(suffix=".db")
     engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+    enable_sqlite_foreign_keys(engine)
     SQLModel.metadata.create_all(engine)
 
     def override_get_db() -> Generator[Session, None, None]:
