@@ -198,5 +198,8 @@ Single Docker image (multi-stage: Node build → Python runtime) serving both th
 the built frontend from one process, deployed via `docker-compose.yml` (app + `cloudflared`)
 to an Oracle Cloud "Always Free" VM, tunneled through Cloudflare for HTTPS with no open
 ports. `deploy.sh` on the VM does `git pull && docker compose up -d --build`. SQLite DB and
-uploaded attachments live in the `carstats_data` Docker volume, surviving redeploys. Full
+uploaded attachments live in the `carstats_data` Docker volume, surviving redeploys. The
+image sets `TZ=Europe/Prague` (with `tzdata` installed), so `date.today()` — which drives
+reminder due dates and the dashboard's relative periods — turns over at Czech midnight;
+stored timestamps are all explicit `datetime.now(UTC)` and unaffected. Full
 one-time setup steps (Google OAuth client, Cloudflare Tunnel, secrets) are in `README.md`.

@@ -10,6 +10,13 @@ RUN npm run build
 FROM python:3.12-slim AS backend
 COPY --from=ghcr.io/astral-sh/uv:0.12.2 /uv /uvx /usr/local/bin/
 
+# date.today() drives "Letos", "12 m" and reminder due dates; in UTC it lags
+# Czech midnight by an hour or two. Without tzdata, TZ is silently ignored.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tzdata \
+    && rm -rf /var/lib/apt/lists/*
+ENV TZ=Europe/Prague
+
 WORKDIR /app/backend
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
