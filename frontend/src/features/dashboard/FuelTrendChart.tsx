@@ -10,6 +10,7 @@ import {
 } from 'recharts'
 import type { FuelTrendPoint } from '../../types'
 import { formatDate } from '../../lib/dates'
+import { formatConsumption, formatCzk, formatNumber, formatPricePerLiter } from '../../lib/format'
 import { useIsDark } from '../../lib/useIsDark'
 import { ChartTooltip } from './ChartTooltip'
 
@@ -22,8 +23,8 @@ const CHART_COLORS = {
 }
 
 const PRICE_TREND_LABELS: Record<string, string> = {
-  price_total: 'Cena celkem (Kč)',
-  price_per_liter: 'Cena za litr (Kč)',
+  price_total: 'Cena celkem',
+  price_per_liter: 'Cena za litr',
 }
 
 export function FuelPriceTrendChart({ data }: { data: FuelTrendPoint[] }) {
@@ -47,6 +48,7 @@ export function FuelPriceTrendChart({ data }: { data: FuelTrendPoint[] }) {
           axisLine={false}
         />
         <YAxis
+          tickFormatter={formatNumber}
           yAxisId="total"
           tick={{ fontSize: 11, fill: CHART_COLORS.axis.light }}
           tickLine={false}
@@ -54,6 +56,7 @@ export function FuelPriceTrendChart({ data }: { data: FuelTrendPoint[] }) {
           width={36}
         />
         <YAxis
+          tickFormatter={formatNumber}
           yAxisId="perLiter"
           orientation="right"
           tick={{ fontSize: 11, fill: CHART_COLORS.axis.light }}
@@ -68,7 +71,10 @@ export function FuelPriceTrendChart({ data }: { data: FuelTrendPoint[] }) {
               title={typeof label === 'string' ? formatDate(label) : undefined}
               items={(payload ?? []).map((entry) => ({
                 label: PRICE_TREND_LABELS[String(entry.dataKey)] ?? String(entry.name),
-                value: Number(entry.value).toFixed(entry.dataKey === 'price_total' ? 0 : 2),
+                value:
+                  entry.dataKey === 'price_total'
+                    ? formatCzk(Number(entry.value))
+                    : formatPricePerLiter(Number(entry.value)),
                 color: entry.color,
               }))}
             />
@@ -122,6 +128,7 @@ export function ConsumptionTrendChart({ data }: { data: FuelTrendPoint[] }) {
           axisLine={false}
         />
         <YAxis
+          tickFormatter={formatNumber}
           tick={{ fontSize: 11, fill: CHART_COLORS.axis.light }}
           tickLine={false}
           axisLine={false}
@@ -134,7 +141,7 @@ export function ConsumptionTrendChart({ data }: { data: FuelTrendPoint[] }) {
               title={typeof label === 'string' ? formatDate(label) : undefined}
               items={
                 payload?.[0]
-                  ? [{ value: `${Number(payload[0].value).toFixed(1)} l/100 km` }]
+                  ? [{ value: formatConsumption(Number(payload[0].value)) }]
                   : []
               }
             />

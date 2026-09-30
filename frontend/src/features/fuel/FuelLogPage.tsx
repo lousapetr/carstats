@@ -5,6 +5,7 @@ import { ActionMenu } from '../../components/ui/ActionMenu'
 import { Card } from '../../components/ui/Card'
 import { confirmDialog } from '../../lib/confirmBus'
 import { formatDate } from '../../lib/dates'
+import { formatConsumption, formatCzk, formatKm, formatLiters, formatMoney } from '../../lib/format'
 import type { FuelEntry, FuelEntryInput } from '../../types'
 import { FuelForm } from './FuelForm'
 
@@ -79,7 +80,7 @@ export function FuelLogPage() {
           <Card key={entry.id} className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                {formatDate(entry.date)} · {entry.mileage_km.toLocaleString()} km
+                {formatDate(entry.date)} · {formatKm(entry.mileage_km)}
                 {!entry.full_tank && (
                   <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-normal text-amber-800 dark:bg-amber-900 dark:text-amber-200">
                     částečné tankování
@@ -87,11 +88,11 @@ export function FuelLogPage() {
                 )}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                {entry.liters} l · {entry.price_total.toFixed(2)} {entry.currency}
-                {entry.currency !== 'CZK' && ` (${entry.price_total_czk.toFixed(0)} Kč)`}
+                {formatLiters(entry.liters)} · {formatMoney(entry.price_total, entry.currency)}
+                {entry.currency !== 'CZK' && ` (${formatCzk(entry.price_total_czk)})`}
                 {entry.full_tank &&
                   (entry.consumption_l_per_100km !== null
-                    ? ` · ${entry.consumption_l_per_100km} l/100 km`
+                    ? ` · ${formatConsumption(entry.consumption_l_per_100km)}`
                     : ' · spotřeba: –')}
               </div>
               {entry.notes && (

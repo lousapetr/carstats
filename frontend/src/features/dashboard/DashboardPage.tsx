@@ -3,13 +3,17 @@ import { dashboardApi } from '../../api/dashboard'
 import { Card } from '../../components/ui/Card'
 import { StatTile } from '../../components/ui/StatTile'
 import { StatusBadge } from '../../components/ui/StatusBadge'
-import { formatCzk } from '../../lib/currencies'
 import { formatDate } from '../../lib/dates'
+import { formatConsumption, formatCostPerKm, formatCzk, formatKm, formatLiters } from '../../lib/format'
+import { serviceEntryLabel } from '../../lib/serviceTypes'
+import type { TimelineItem } from '../../types'
 import { CostBreakdownChart } from './CostBreakdownChart'
 import { ConsumptionTrendChart, FuelPriceTrendChart } from './FuelTrendChart'
 
-function formatConsumption(value: number | null) {
-  return value !== null ? `${value} l/100 km` : '—'
+function timelineLabel(item: TimelineItem) {
+  return item.kind === 'fuel'
+    ? `Tankování (${formatLiters(item.liters)})`
+    : serviceEntryLabel(item.service_type, item.description)
 }
 
 export function DashboardPage() {
@@ -44,7 +48,7 @@ export function DashboardPage() {
           {carLabel || 'Vaše auto'}
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          {summary.car.current_mileage_km.toLocaleString()} km
+          {formatKm(summary.car.current_mileage_km)}
         </p>
       </div>
 
@@ -70,7 +74,7 @@ export function DashboardPage() {
         <StatTile label="Náklady na servis" value={formatCzk(summary.total_maintenance_cost)} />
         <StatTile
           label="Náklady na km"
-          value={summary.cost_per_km !== null ? `${summary.cost_per_km} Kč/km` : '—'}
+          value={formatCostPerKm(summary.cost_per_km)}
         />
         <StatTile label="Náklady letos" value={formatCzk(summary.total_cost_this_year)} />
         <StatTile label="Náklady vloni" value={formatCzk(summary.total_cost_last_year)} />
@@ -128,7 +132,7 @@ export function DashboardPage() {
               }`}
             >
               <span className="text-gray-700 dark:text-gray-300">
-                {formatDate(item.date)} · {item.label}
+                {formatDate(item.date)} · {timelineLabel(item)}
               </span>
               <span className="text-gray-500 dark:text-gray-400">{formatCzk(item.cost)}</span>
             </div>

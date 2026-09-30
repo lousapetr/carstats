@@ -6,13 +6,14 @@ import { currencyApi } from '../../api/currency'
 import { Button } from '../../components/ui/Button'
 import { Field, inputClass } from '../../components/ui/Field'
 import { CURRENCIES, CURRENCY_CODES, CURRENCY_LABELS } from '../../lib/currencies'
+import { SERVICE_TYPE_VALUES, SERVICE_TYPES } from '../../lib/serviceTypes'
 
 const emptyToUndefined = (val: unknown) => (val === '' ? undefined : val)
 
 const schema = z.object({
   date: z.string().min(1, 'Povinné pole'),
   mileage_km: z.coerce.number().positive('Musí být kladné číslo'),
-  type: z.enum(['oil_change', 'tires', 'engine_service', 'additives', 'other']),
+  type: z.enum(SERVICE_TYPE_VALUES),
   description: z.string().max(1000, 'Nejvýše 1000 znaků').optional(),
   cost: z.preprocess(
     emptyToUndefined,
@@ -30,14 +31,6 @@ const blankValues = (): DefaultValues<MaintenanceFormInput> => ({
   type: 'oil_change',
   currency: 'CZK',
 })
-
-const TYPE_OPTIONS: { value: MaintenanceFormValues['type']; label: string }[] = [
-  { value: 'oil_change', label: 'Výměna oleje' },
-  { value: 'tires', label: 'Pneumatiky' },
-  { value: 'engine_service', label: 'Servis motoru' },
-  { value: 'additives', label: 'Aditiva' },
-  { value: 'other', label: 'Jiné' },
-]
 
 export function MaintenanceForm({
   onSubmit,
@@ -90,7 +83,7 @@ export function MaintenanceForm({
       </Field>
       <Field label="Typ" error={errors.type?.message}>
         <select className={inputClass} {...register('type')}>
-          {TYPE_OPTIONS.map((opt) => (
+          {SERVICE_TYPES.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>

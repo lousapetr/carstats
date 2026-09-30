@@ -1,15 +1,19 @@
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { CostBreakdown } from '../../types'
+import { formatCzk, formatNumber } from '../../lib/format'
+import { SERVICE_TYPE_LABELS } from '../../lib/serviceTypes'
 import { useIsDark } from '../../lib/useIsDark'
 import { ChartTooltip } from './ChartTooltip'
 
-const CATEGORY_COLORS: Record<string, { light: string; dark: string; label: string }> = {
-  fuel: { light: '#2a78d6', dark: '#3987e5', label: 'Palivo' },
-  oil_change: { light: '#eb6834', dark: '#d95926', label: 'Výměna oleje' },
-  tires: { light: '#1baf7a', dark: '#199e70', label: 'Pneumatiky' },
-  engine_service: { light: '#eda100', dark: '#c98500', label: 'Servis motoru' },
-  additives: { light: '#8b5cf6', dark: '#7c3aed', label: 'Aditiva' },
-  other: { light: '#e87ba4', dark: '#d55181', label: 'Jiné' },
+const CATEGORY_LABELS: Record<string, string> = { fuel: 'Palivo', ...SERVICE_TYPE_LABELS }
+
+const CATEGORY_COLORS: Record<string, { light: string; dark: string }> = {
+  fuel: { light: '#2a78d6', dark: '#3987e5' },
+  oil_change: { light: '#eb6834', dark: '#d95926' },
+  tires: { light: '#1baf7a', dark: '#199e70' },
+  engine_service: { light: '#eda100', dark: '#c98500' },
+  additives: { light: '#8b5cf6', dark: '#7c3aed' },
+  other: { light: '#e87ba4', dark: '#d55181' },
 }
 
 export function CostBreakdownChart({ data }: { data: CostBreakdown }) {
@@ -25,7 +29,7 @@ export function CostBreakdownChart({ data }: { data: CostBreakdown }) {
   }
 
   const chartData = rows.map((row) => ({
-    name: CATEGORY_COLORS[row.key]?.label ?? row.key,
+    name: CATEGORY_LABELS[row.key] ?? row.key,
     value: row.value,
     key: row.key,
   }))
@@ -35,7 +39,7 @@ export function CostBreakdownChart({ data }: { data: CostBreakdown }) {
       <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#2c2c2a' : '#e1e0d9'} vertical={false} />
         <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#898781' }} tickLine={false} axisLine={false} />
-        <YAxis tick={{ fontSize: 11, fill: '#898781' }} tickLine={false} axisLine={false} width={40} />
+        <YAxis tickFormatter={formatNumber} tick={{ fontSize: 11, fill: '#898781' }} tickLine={false} axisLine={false} width={40} />
         <Tooltip
           content={({ active, payload }) => (
             <ChartTooltip
@@ -43,7 +47,7 @@ export function CostBreakdownChart({ data }: { data: CostBreakdown }) {
               title={typeof payload?.[0]?.payload?.name === 'string' ? payload[0].payload.name : undefined}
               items={
                 payload?.[0]
-                  ? [{ value: `${Number(payload[0].value).toFixed(0)} Kč` }]
+                  ? [{ value: formatCzk(Number(payload[0].value)) }]
                   : []
               }
             />

@@ -4,14 +4,26 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.car.models import CarProfileRead
+from app.maintenance.models import ServiceType
 from app.reminders.models import ReminderRead
 
 
-class TimelineItem(BaseModel):
+class FuelTimelineItem(BaseModel):
     date: date
-    kind: Literal["fuel", "service"]
-    label: str
+    kind: Literal["fuel"] = "fuel"
     cost: float
+    liters: float
+
+
+class ServiceTimelineItem(BaseModel):
+    date: date
+    kind: Literal["service"] = "service"
+    cost: float
+    service_type: ServiceType
+    description: str | None
+
+
+TimelineItem = FuelTimelineItem | ServiceTimelineItem
 
 
 class DashboardSummary(BaseModel):

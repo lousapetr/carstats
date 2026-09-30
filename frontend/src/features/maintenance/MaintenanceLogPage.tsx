@@ -5,17 +5,11 @@ import { ActionMenu } from '../../components/ui/ActionMenu'
 import { Card } from '../../components/ui/Card'
 import { confirmDialog } from '../../lib/confirmBus'
 import { formatDate } from '../../lib/dates'
+import { formatCzk, formatKm, formatMoney } from '../../lib/format'
+import { SERVICE_TYPE_LABELS } from '../../lib/serviceTypes'
 import type { ServiceEntry, ServiceEntryInput } from '../../types'
 import { AttachmentUploader } from './AttachmentUploader'
 import { MaintenanceForm } from './MaintenanceForm'
-
-const TYPE_LABELS: Record<string, string> = {
-  oil_change: 'Výměna oleje',
-  tires: 'Pneumatiky',
-  engine_service: 'Servis motoru',
-  additives: 'Aditiva',
-  other: 'Jiné',
-}
 
 function toFormValues(entry: ServiceEntry) {
   return {
@@ -90,11 +84,11 @@ export function MaintenanceLogPage() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {TYPE_LABELS[entry.type]} · {formatDate(entry.date)}
+                  {SERVICE_TYPE_LABELS[entry.type]} · {formatDate(entry.date)}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {entry.mileage_km.toLocaleString()} km · {entry.cost.toFixed(2)} {entry.currency}
-                  {entry.currency !== 'CZK' && ` (${entry.cost_czk.toFixed(0)} Kč)`}
+                  {formatKm(entry.mileage_km)} · {formatMoney(entry.cost, entry.currency)}
+                  {entry.currency !== 'CZK' && ` (${formatCzk(entry.cost_czk)})`}
                 </div>
                 {entry.description && (
                   <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">

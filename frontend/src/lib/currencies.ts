@@ -28,6 +28,3 @@ export const CURRENCY_LABELS: Record<Currency, string> = {
   RON: 'RON (lei)',
 }
 
-export function formatCzk(value: number): string {
-  return `${value.toLocaleString('cs-CZ', { maximumFractionDigits: 0 })} Kč`
-}

@@ -111,12 +111,15 @@ export interface ReminderInput {
   recurrence_km?: number | null
 }
 
-export interface TimelineItem {
-  date: string
-  kind: 'fuel' | 'service'
-  label: string
-  cost: number
-}
+export type TimelineItem =
+  | { date: string; kind: 'fuel'; cost: number; liters: number }
+  | {
+      date: string
+      kind: 'service'
+      cost: number
+      service_type: ServiceType
+      description: string | null
+    }
 
 export interface DashboardSummary {
   car: CarProfile

@@ -5,21 +5,20 @@ from sqlmodel import Session, select
 
 from app.car.models import CarProfileRead
 from app.car.service import get_or_create_profile
-from app.dashboard.schemas import CostBreakdown, DashboardSummary, FuelTrendPoint, TimelineItem
+from app.dashboard.schemas import (
+    CostBreakdown,
+    DashboardSummary,
+    FuelTimelineItem,
+    FuelTrendPoint,
+    ServiceTimelineItem,
+    TimelineItem,
+)
 from app.fuel.models import FuelEntry
 from app.fuel.service import FullToFullInterval, full_to_full_intervals, list_entries_with_stats
-from app.maintenance.models import ServiceEntry, ServiceType
+from app.maintenance.models import ServiceEntry
 from app.reminders.service import list_active_reminders
 
 RECENT_ACTIVITY_LIMIT = 10
-
-SERVICE_TYPE_LABELS_CS = {
-    "oil_change": "Výměna oleje",
-    "tires": "Pneumatiky",
-    "engine_service": "Servis motoru",
-    "additives": "Aditiva",
-    "other": "Jiné",
-}
 
 
 def _fuel_cost_czk(entry: FuelEntry) -> float:
@@ -28,13 +27,6 @@ def _fuel_cost_czk(entry: FuelEntry) -> float:
 
 def _service_cost_czk(entry: ServiceEntry) -> float:
     return entry.cost * entry.exchange_rate
-
-
-def _service_label(entry: ServiceEntry) -> str:
-    label = SERVICE_TYPE_LABELS_CS.get(entry.type.value, entry.type.value)
-    if entry.type == ServiceType.other and entry.description:
-        return f"{label} - {entry.description}"
-    return label
 
 
 def _avg_consumption(intervals: Sequence[FullToFullInterval]) -> float | None:
@@ -89,20 +81,16 @@ def get_summary(db: Session) -> DashboardSummary:
         [i for i in intervals if i.date.year == this_year - 1]
     )
 
-    timeline = [
-        TimelineItem(
-            date=e.date,
-            kind="fuel",
-            label=f"Tankování ({e.liters:g} l)",
-            cost=round(_fuel_cost_czk(e), 2),
-        )
+    timeline: list[TimelineItem] = [
+        FuelTimelineItem(date=e.date, cost=round(_fuel_cost_czk(e), 2), liters=e.liters)
         for e in fuel_entries
-    ] + [
-        TimelineItem(
+    ]
+    timeline += [
+        ServiceTimelineItem(
             date=e.date,
-            kind="service",
-            label=_service_label(e),
             cost=round(_service_cost_czk(e), 2),
+            service_type=e.type,
+            description=e.description,
         )
         for e in service_entries
     ]

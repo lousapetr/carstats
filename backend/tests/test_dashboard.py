@@ -47,6 +47,12 @@ def test_summary_aggregates_costs_and_activity(client):
     assert summary["avg_consumption_l_per_100km"] == 7.0
     assert len(summary["recent_activity"]) == 3
     assert summary["recent_activity"][0]["date"] == "2026-08-05"
+    assert summary["recent_activity"][0]["kind"] == "fuel"
+    assert summary["recent_activity"][0]["liters"] == 35
+    assert summary["recent_activity"][1]["kind"] == "service"
+    assert summary["recent_activity"][1]["service_type"] == "oil_change"
+    assert summary["recent_activity"][1]["description"] is None
+    assert "label" not in summary["recent_activity"][0]
     # 500 km driven (10000 -> 10500) for 196 total cost.
     assert summary["cost_per_km"] == round(196 / 500, 2)
 

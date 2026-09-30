@@ -6,6 +6,7 @@ import { Card } from '../../components/ui/Card'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { confirmDialog } from '../../lib/confirmBus'
 import { formatDate } from '../../lib/dates'
+import { formatKm } from '../../lib/format'
 import type { Reminder, ReminderInput } from '../../types'
 import { ReminderForm } from './ReminderForm'
 
@@ -93,7 +94,7 @@ export function RemindersPage() {
                 {reminder.due_date && `Termín ${formatDate(reminder.due_date)}`}
                 {reminder.due_date && reminder.due_mileage_km !== null && ' · '}
                 {reminder.due_mileage_km !== null &&
-                  `Při ${reminder.due_mileage_km.toLocaleString()} km`}
+                  `Při ${formatKm(reminder.due_mileage_km)}`}
               </div>
             </div>
             <ActionMenu
