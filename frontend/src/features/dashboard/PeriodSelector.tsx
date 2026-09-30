@@ -1,6 +1,7 @@
 import { type FormEvent, type KeyboardEvent, useRef, useState } from 'react'
 import { Button } from '../../components/ui/Button'
 import { Field, inputClass } from '../../components/ui/Field'
+import { todayIso } from '../../lib/dates'
 import { periodLabel, rangeBounds, rangePeriod, yearPeriod } from '../../lib/periods'
 import type { Period } from '../../types'
 
@@ -109,11 +110,14 @@ function CustomRangeForm({
 }) {
   const [from, setFrom] = useState(initial.from)
   const [to, setTo] = useState(initial.to)
-  const reversed = from !== '' && to !== '' && from > to
+  const today = todayIso()
+  const effectiveFrom = from || today
+  const effectiveTo = to || today
+  const reversed = effectiveFrom > effectiveTo
 
   function submit(event: FormEvent) {
     event.preventDefault()
-    if (from !== '' && to !== '' && !reversed) onApply(from, to)
+    if (!reversed) onApply(effectiveFrom, effectiveTo)
   }
 
   return (
@@ -126,9 +130,8 @@ function CustomRangeForm({
           type="date"
           className={inputClass}
           value={from}
-          max={to || undefined}
+          max={effectiveTo}
           onChange={(e) => setFrom(e.target.value)}
-          required
         />
       </Field>
       <Field label="Do" error={reversed ? 'Konec je před začátkem' : undefined}>
@@ -138,12 +141,14 @@ function CustomRangeForm({
           value={to}
           min={from || undefined}
           onChange={(e) => setTo(e.target.value)}
-          required
         />
       </Field>
       <Button type="submit" className="col-span-2 sm:col-span-1" disabled={reversed}>
         Použít
       </Button>
+      <p className="col-span-2 text-xs text-gray-500 sm:col-span-3 dark:text-gray-400">
+        Nevyplněné datum znamená dnešek.
+      </p>
     </form>
   )
 }
