@@ -73,9 +73,11 @@ deltas server-side rather than in the browser.
 **Rewriting `validate_mileage_consistency`** — declined in the 2026-09-09 review (finding 10) with
 sound reasoning; nothing has changed.
 
-**Dashboard full-table scans** — three endpoints each scan `fuelentry` and `serviceentry`.
-Collapsing to one endpoint (#14) removes two of the three for free, and the remaining `FuelEntry`
-scan is *required*: full-to-full accounting needs every row regardless of the selected period.
+**Dashboard full-table scans** — the one `/api/dashboard` request (#14) reads `serviceentry` once
+and `fuelentry` twice: once for totals and intervals, once more inside
+`fuel.service.list_entries_with_stats` for the trend, which is reused rather than re-deriving its
+per-entry CZK figures here. The `FuelEntry` read is *required*: full-to-full accounting needs every
+row regardless of the selected period.
 Pushing sums into SQL would leave that scan in place, add round-trips, and duplicate the CZK
 conversion formula. **Revisit at** ~10 000 fuel rows or `/api/dashboard` p95 over 200 ms; the first
 move then is memoizing `full_to_full_intervals` on (row count, max id), not SQL aggregates.
