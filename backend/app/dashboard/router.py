@@ -1,11 +1,23 @@
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, Query
 
 from app.core.database import DbSession
 from app.core.security import CurrentUser
 from app.dashboard import service
-from app.dashboard.schemas import CostBreakdown, DashboardSummary, FuelTrendPoint
+from app.dashboard.periods import PERIOD_PATTERN
+from app.dashboard.schemas import CostBreakdown, Dashboard, DashboardSummary, FuelTrendPoint
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+
+
+@router.get("", response_model=Dashboard)
+def dashboard(
+    user: CurrentUser,
+    db: DbSession,
+    period: Annotated[str, Query(pattern=PERIOD_PATTERN)] = "all",
+) -> Dashboard:
+    return service.get_dashboard(db, period)
 
 
 @router.get("/summary", response_model=DashboardSummary)
