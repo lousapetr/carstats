@@ -11,7 +11,7 @@ import { serviceEntryLabel } from '../../lib/serviceTypes'
 import type { TimelineItem } from '../../types'
 import { CostBreakdownChart } from './CostBreakdownChart'
 import { FirstRunCard } from './FirstRunCard'
-import { ConsumptionTrendChart, FuelPriceTrendChart } from './FuelTrendChart'
+import { ConsumptionTrendChart, PricePerLiterChart } from './FuelTrendChart'
 
 function timelineLabel(item: TimelineItem) {
   return item.kind === 'fuel'
@@ -109,9 +109,9 @@ export function DashboardPage() {
           {fuelTrend.length > 0 && (
             <Card>
               <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                Cena paliva v čase
+                Cena paliva za litr
               </h2>
-              <FuelPriceTrendChart data={fuelTrend} />
+              <PricePerLiterChart data={fuelTrend} />
             </Card>
           )}
 
@@ -126,7 +126,7 @@ export function DashboardPage() {
 
           <Card>
             <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-              Rozložení nákladů
+              Náklady podle kategorie
             </h2>
             <CostBreakdownChart data={costBreakdown} />
           </Card>

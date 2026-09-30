@@ -1,161 +1,96 @@
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { FuelTrendPoint } from '../../types'
-import { formatDate } from '../../lib/dates'
-import { formatConsumption, formatCzk, formatNumber, formatPricePerLiter } from '../../lib/format'
-import { useIsDark } from '../../lib/useIsDark'
+import { formatDate, formatShortDate } from '../../lib/dates'
+import { formatConsumption, formatNumber, formatPricePerLiter } from '../../lib/format'
+import { ChartFigure } from './ChartFigure'
 import { ChartTooltip } from './ChartTooltip'
+import { payloadNumber, useChartTheme } from './chartTheme'
 
-const CHART_COLORS = {
-  price: { light: '#2a78d6', dark: '#3987e5' },
-  pricePerLiter: { light: '#1baf7a', dark: '#199e70' },
-  consumption: { light: '#eb6834', dark: '#d95926' },
-  grid: { light: '#e1e0d9', dark: '#2c2c2a' },
-  axis: { light: '#898781', dark: '#898781' },
-}
-
-const PRICE_TREND_LABELS: Record<string, string> = {
-  price_total: 'Cena celkem',
-  price_per_liter: 'Cena za litr',
-}
-
-export function FuelPriceTrendChart({ data }: { data: FuelTrendPoint[] }) {
-  const isDark = useIsDark()
-  const totalColor = isDark ? CHART_COLORS.price.dark : CHART_COLORS.price.light
-  const perLiterColor = isDark ? CHART_COLORS.pricePerLiter.dark : CHART_COLORS.pricePerLiter.light
+function SingleSeriesLineChart({
+  data,
+  dataKey,
+  color,
+  caption,
+  formatValue,
+}: {
+  data: FuelTrendPoint[]
+  dataKey: 'price_per_liter' | 'consumption_l_per_100km'
+  color: string
+  caption: string
+  formatValue: (value: number) => string
+}) {
+  const theme = useChartTheme()
+  const tick = { fontSize: 11, fill: theme.tick }
 
   return (
-    <ResponsiveContainer width="100%" height={180}>
-      <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke={isDark ? CHART_COLORS.grid.dark : CHART_COLORS.grid.light}
-          vertical={false}
-        />
-        <XAxis
-          dataKey="date"
-          tickFormatter={formatDate}
-          tick={{ fontSize: 11, fill: CHART_COLORS.axis.light }}
-          tickLine={false}
-          axisLine={false}
-        />
-        <YAxis
-          tickFormatter={formatNumber}
-          yAxisId="total"
-          tick={{ fontSize: 11, fill: CHART_COLORS.axis.light }}
-          tickLine={false}
-          axisLine={false}
-          width={36}
-        />
-        <YAxis
-          tickFormatter={formatNumber}
-          yAxisId="perLiter"
-          orientation="right"
-          tick={{ fontSize: 11, fill: CHART_COLORS.axis.light }}
-          tickLine={false}
-          axisLine={false}
-          width={36}
-        />
-        <Tooltip
-          content={({ active, label, payload }) => (
-            <ChartTooltip
-              active={active}
-              title={typeof label === 'string' ? formatDate(label) : undefined}
-              items={(payload ?? []).map((entry) => ({
-                label: PRICE_TREND_LABELS[String(entry.dataKey)] ?? String(entry.name),
-                value:
-                  entry.dataKey === 'price_total'
-                    ? formatCzk(Number(entry.value))
-                    : formatPricePerLiter(Number(entry.value)),
-                color: entry.color,
-              }))}
-            />
-          )}
-        />
-        <Legend
-          formatter={(value) => PRICE_TREND_LABELS[value] ?? value}
-          wrapperStyle={{ fontSize: 11 }}
-        />
-        <Line
-          yAxisId="total"
-          type="monotone"
-          dataKey="price_total"
-          stroke={totalColor}
-          strokeWidth={2}
-          dot={{ r: 3 }}
-          activeDot={{ r: 5 }}
-        />
-        <Line
-          yAxisId="perLiter"
-          type="monotone"
-          dataKey="price_per_liter"
-          stroke={perLiterColor}
-          strokeWidth={2}
-          dot={{ r: 3 }}
-          activeDot={{ r: 5 }}
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <ChartFigure caption={caption}>
+      <ResponsiveContainer width="100%" height={200}>
+        <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} vertical={false} />
+          <XAxis
+            dataKey="date"
+            tickFormatter={formatShortDate}
+            tick={tick}
+            tickLine={false}
+            axisLine={false}
+            minTickGap={16}
+          />
+          <YAxis
+            tickFormatter={formatNumber}
+            tick={tick}
+            tickLine={false}
+            axisLine={false}
+            width={36}
+            domain={['auto', 'auto']}
+          />
+          <Tooltip
+            content={({ active, label, payload }) => {
+              const value = payloadNumber(payload?.[0]?.value)
+              return (
+                <ChartTooltip
+                  active={active}
+                  title={typeof label === 'string' ? formatDate(label) : undefined}
+                  items={value !== null ? [{ value: formatValue(value) }] : []}
+                />
+              )
+            }}
+          />
+          <Line
+            type="monotone"
+            dataKey={dataKey}
+            stroke={color}
+            strokeWidth={2}
+            dot={{ r: 3 }}
+            activeDot={{ r: 5 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </ChartFigure>
+  )
+}
+
+export function PricePerLiterChart({ data }: { data: FuelTrendPoint[] }) {
+  const theme = useChartTheme()
+  return (
+    <SingleSeriesLineChart
+      data={data}
+      dataKey="price_per_liter"
+      color={theme.pricePerLiter}
+      caption="Spojnicový graf ceny paliva za litr v Kč podle data tankování."
+      formatValue={formatPricePerLiter}
+    />
   )
 }
 
 export function ConsumptionTrendChart({ data }: { data: FuelTrendPoint[] }) {
-  const isDark = useIsDark()
-  const color = isDark ? CHART_COLORS.consumption.dark : CHART_COLORS.consumption.light
-  const points = data.filter((d) => d.consumption_l_per_100km !== null)
-
+  const theme = useChartTheme()
   return (
-    <ResponsiveContainer width="100%" height={180}>
-      <LineChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke={isDark ? CHART_COLORS.grid.dark : CHART_COLORS.grid.light}
-          vertical={false}
-        />
-        <XAxis
-          dataKey="date"
-          tickFormatter={formatDate}
-          tick={{ fontSize: 11, fill: CHART_COLORS.axis.light }}
-          tickLine={false}
-          axisLine={false}
-        />
-        <YAxis
-          tickFormatter={formatNumber}
-          tick={{ fontSize: 11, fill: CHART_COLORS.axis.light }}
-          tickLine={false}
-          axisLine={false}
-          width={36}
-        />
-        <Tooltip
-          content={({ active, label, payload }) => (
-            <ChartTooltip
-              active={active}
-              title={typeof label === 'string' ? formatDate(label) : undefined}
-              items={
-                payload?.[0]
-                  ? [{ value: formatConsumption(Number(payload[0].value)) }]
-                  : []
-              }
-            />
-          )}
-        />
-        <Line
-          type="monotone"
-          dataKey="consumption_l_per_100km"
-          stroke={color}
-          strokeWidth={2}
-          dot={{ r: 3 }}
-          activeDot={{ r: 5 }}
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <SingleSeriesLineChart
+      data={data.filter((d) => d.consumption_l_per_100km !== null)}
+      dataKey="consumption_l_per_100km"
+      color={theme.consumption}
+      caption="Spojnicový graf spotřeby v litrech na 100 km podle data plného tankování."
+      formatValue={(v) => formatConsumption(v)}
+    />
   )
 }
