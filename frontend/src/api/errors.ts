@@ -11,16 +11,17 @@ export function shouldRetryQuery(failureCount: number, error: unknown): boolean 
   return !(error instanceof ApiError) || error.status >= 500
 }
 
-/** The toast text for a failed mutation. 400 and 422 carry a Czech message
- *  from the backend; everything else gets a generic one, since the backend's
- *  other `detail`s (404s, 500s) are English or absent. */
+/** The toast text for a failed mutation. A specific message beats a generic
+ *  one even when it is in English: the Czech status messages below win where
+ *  they exist, then the backend's own `detail` (Czech for 400/422, often
+ *  English otherwise), and only a response with no detail at all gets the
+ *  generic Czech fallback. */
 export function mutationErrorMessage(error: unknown): string {
   if (!(error instanceof ApiError)) {
     return 'Nepodařilo se spojit se serverem. Zkontrolujte připojení a zkuste to znovu.'
   }
-  if (error.status === 400 || error.status === 422) return error.message
   if (error.status === 401) return 'Přihlášení vypršelo. Přihlaste se prosím znovu.'
   if (error.status === 404) return 'Záznam už neexistuje. Obnovte prosím stránku.'
   if (error.status === 413) return 'Soubor je příliš velký.'
-  return 'Na serveru došlo k chybě. Zkuste to prosím znovu.'
+  return error.detail ?? 'Na serveru došlo k chybě. Zkuste to prosím znovu.'
 }

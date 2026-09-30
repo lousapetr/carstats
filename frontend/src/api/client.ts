@@ -1,15 +1,19 @@
 export class ApiError extends Error {
   status: number
+  /** The backend's own `detail` message, or null when the response carried
+   *  none and `message` is only the HTTP status text. */
+  detail: string | null
 
-  constructor(status: number, message: string) {
-    super(message)
+  constructor(status: number, detail: string | null, statusText: string) {
+    super(detail ?? statusText)
     this.status = status
+    this.detail = detail
   }
 }
 
 /** FastAPI puts a plain string in `detail` for HTTPException, but a list of
  *  error objects for a 422 schema violation — flatten both to one message. */
-async function errorMessage(response: Response): Promise<string> {
+async function errorDetail(response: Response): Promise<string | null> {
   const body: unknown = await response.json().catch(() => null)
   const detail = (body as { detail?: unknown } | null)?.detail
   if (Array.isArray(detail)) {
@@ -18,10 +22,10 @@ async function errorMessage(response: Response): Promise<string> {
       .filter((msg) => msg !== '')
     if (messages.length > 0) return messages.join('; ')
   }
-  if (typeof detail === 'string') {
+  if (typeof detail === 'string' && detail !== '') {
     return detail
   }
-  return response.statusText
+  return null
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -36,7 +40,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   })
 
   if (!response.ok) {
-    throw new ApiError(response.status, await errorMessage(response))
+    throw new ApiError(response.status, await errorDetail(response), response.statusText)
   }
 
   if (response.status === 204) {

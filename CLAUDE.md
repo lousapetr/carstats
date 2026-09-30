@@ -165,10 +165,12 @@ in `src/components/ui/`. Server state is TanStack Query; forms are react-hook-fo
 Error popups are not wired per-form: `App.tsx` configures the shared `QueryClient` with a
 `MutationCache.onError` that shows a toast (`lib/toastBus.ts` + `components/ui/ToastHost.tsx`)
 for every failed mutation. A new form's validation errors get this for free — no
-per-mutation `onError` needed. Only 400 and 422 `detail` messages are shown verbatim
-(`api/errors.ts::mutationErrorMessage`), so those must be written in Czech (see
-`car/service.py`, `attachments/storage.py`); a 422's `detail` is a list of pydantic errors,
-which `api/client.ts` flattens into one message. Any other status gets a generic Czech line.
+per-mutation `onError` needed. `api/errors.ts::mutationErrorMessage` picks the text: a
+Czech message for 401/404/413, otherwise the backend's `detail` verbatim, and a generic
+Czech line only when the response carried no `detail` at all — a specific English message
+is preferred over a generic Czech one. Backend 400 `detail`s are user-facing and must be
+written in Czech (see `car/service.py`, `attachments/storage.py`); a 422's `detail` is a
+list of pydantic errors, which `api/client.ts` flattens into one message.
 
 Failed *reads* don't toast: each page renders `components/ui/LoadingState` /
 `ErrorState` (with a retry button calling `refetch`) off the query's `isPending` /
