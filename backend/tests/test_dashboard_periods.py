@@ -246,3 +246,67 @@ def test_available_years_are_newest_first(client):
     _service(client, "2025-01-01", 11000, 10)
     _fuel(client, "2026-01-01", 12000, 40)
     assert _dashboard(client)["available_years"] == [2026, 2025, 2024]
+
+
+# --- custom range ---
+
+
+def test_range_window_is_inclusive_and_previous_is_the_same_length_before():
+    period = "range:2026-03-01..2026-03-31"
+    assert parse_period(period, TODAY) == DateWindow(date(2026, 3, 1), date(2026, 3, 31))
+    assert previous_window(period, TODAY) == DateWindow(date(2026, 1, 29), date(2026, 2, 28))
+
+
+def test_single_day_range():
+    period = "range:2026-03-01..2026-03-01"
+    assert parse_period(period, TODAY) == DateWindow(date(2026, 3, 1), date(2026, 3, 1))
+    assert previous_window(period, TODAY) == DateWindow(date(2026, 2, 28), date(2026, 2, 28))
+
+
+@pytest.mark.parametrize(
+    "period",
+    [
+        "range:2026-02-30..2026-03-01",  # no such day
+        "range:2026-03-02..2026-03-01",  # reversed
+        "range:2026-03-01",
+        "range:2026-3-1..2026-3-31",
+    ],
+)
+def test_invalid_range_is_422(client, period):
+    assert client.get("/api/dashboard", params={"period": period}).status_code == 422
+
+
+def test_range_filters_costs_and_compares_with_the_preceding_stretch(client, fixed_today):
+    _fuel(client, "2026-02-15", 10000, 40)
+    _fuel(client, "2026-03-10", 10500, 30)
+    _fuel(client, "2026-04-10", 11000, 30)
+
+    dashboard = _dashboard(client, "range:2026-03-01..2026-03-31")
+    assert dashboard["period"]["start"] == "2026-03-01"
+    assert dashboard["period"]["end"] == "2026-03-31"
+    assert dashboard["period"]["previous_start"] == "2026-01-29"
+    assert dashboard["totals"]["total"] == 30
+    assert dashboard["previous_totals"]["total"] == 40
+    assert [p["bucket"] for p in dashboard["monthly_costs"]] == ["2026-03"]
+    assert dashboard["distance_km"] == 500
+
+
+# --- average price per litre ---
+
+
+def test_avg_price_per_liter_is_weighted_by_litres(client, fixed_today):
+    # 10 l at 30 and 30 l at 40: (300 + 1200) / 40 = 37.5, not the mean 35.
+    _fuel(client, "2025-05-01", 9000, 20, price_per_liter=30)
+    _fuel(client, "2026-05-01", 10000, 10, price_per_liter=30)
+    _fuel(client, "2026-06-01", 10500, 30, price_per_liter=40)
+
+    dashboard = _dashboard(client, "ytd")
+    assert dashboard["avg_price_per_liter"] == 37.5
+    assert dashboard["avg_price_per_liter_delta"] == 7.5
+
+
+def test_avg_price_per_liter_is_none_without_fuel(client):
+    _service(client, "2026-05-01", 10000, 100)
+    dashboard = _dashboard(client)
+    assert dashboard["avg_price_per_liter"] is None
+    assert dashboard["avg_price_per_liter_delta"] is None

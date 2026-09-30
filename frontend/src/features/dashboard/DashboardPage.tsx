@@ -15,6 +15,7 @@ import {
   formatKm,
   formatLiters,
   formatPercent,
+  formatPricePerLiter,
   pluralize,
 } from '../../lib/format'
 import {
@@ -120,6 +121,7 @@ export function DashboardPage() {
           <PeriodSelector
             value={period}
             years={dashboard.available_years}
+            bounds={dashboard.period}
             onChange={selectPeriod}
           />
 
@@ -129,27 +131,46 @@ export function DashboardPage() {
           >
             <Card>
               <div className="text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400">
-                Celkové náklady
+                Spotřeba
               </div>
               <div className="mt-1 text-4xl font-semibold text-gray-900 sm:text-5xl dark:text-gray-100">
-                {formatCzk(totals.total)}
+                {formatConsumption(dashboard.avg_consumption_l_per_100km)}
               </div>
               <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {periodLabel(dashboard.period.key)}
-                {dashboard.total_cost_delta_pct !== null && (
+                {dashboard.avg_consumption_delta !== null && (
                   <>
                     {' · '}
                     <Delta
-                      value={dashboard.total_cost_delta_pct}
-                      formatMagnitude={formatPercent}
+                      value={dashboard.avg_consumption_delta}
+                      formatMagnitude={(v) => formatConsumption(v)}
                       vs={vs}
                     />
                   </>
                 )}
+                {' · '}
+                {dashboard.consumption_interval_count > 0
+                  ? `z ${pluralize(dashboard.consumption_interval_count, 'intervalu', 'intervalů', 'intervalů')} mezi plnými nádržemi`
+                  : 'žádný úsek mezi plnými nádržemi'}
               </div>
             </Card>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <StatTile
+                label="Najeté kilometry"
+                value={dashboard.distance_km !== null ? formatKm(dashboard.distance_km) : '—'}
+              />
+              <StatTile
+                label="Celkové náklady"
+                value={formatCzk(totals.total)}
+                sub={
+                  <Delta
+                    value={dashboard.total_cost_delta_pct}
+                    formatMagnitude={formatPercent}
+                    vs={vs}
+                  />
+                }
+              />
               <StatTile
                 label="Palivo"
                 value={formatCzk(totals.fuel)}
@@ -160,30 +181,32 @@ export function DashboardPage() {
                 value={formatCzk(totals.maintenance)}
                 sub={pluralize(totals.maintenance_entries, 'záznam', 'záznamy', 'záznamů')}
               />
+              <StatTile label="Náklady/km" value={formatCostPerKm(dashboard.cost_per_km)} />
               <StatTile
-                label="Spotřeba"
-                value={formatConsumption(dashboard.avg_consumption_l_per_100km)}
+                label="Průměrná cena paliva"
+                value={
+                  dashboard.avg_price_per_liter !== null
+                    ? formatPricePerLiter(dashboard.avg_price_per_liter)
+                    : '—'
+                }
                 sub={
-                  dashboard.consumption_interval_count > 0 && (
-                    <>
-                      <Delta
-                        value={dashboard.avg_consumption_delta}
-                        formatMagnitude={(v) => formatConsumption(v)}
-                        vs={vs}
-                      />
-                      {dashboard.avg_consumption_delta !== null && <br />}
-                      z{' '}
-                      {pluralize(dashboard.consumption_interval_count, 'intervalu', 'intervalů', 'intervalů')}
-                    </>
-                  )
+                  <Delta
+                    value={dashboard.avg_price_per_liter_delta}
+                    formatMagnitude={formatPricePerLiter}
+                    vs={vs}
+                  />
                 }
               />
-              <StatTile
-                label="Náklady/km"
-                value={formatCostPerKm(dashboard.cost_per_km)}
-                sub={dashboard.distance_km !== null && `${formatKm(dashboard.distance_km)} v období`}
-              />
             </div>
+
+            {hasConsumption && (
+              <ChartCard title="Spotřeba v čase">
+                <ConsumptionTrendChart
+                  data={dashboard.fuel_trend}
+                  average={dashboard.avg_consumption_l_per_100km}
+                />
+              </ChartCard>
+            )}
 
             {dashboard.monthly_costs.length > 0 && (
               <ChartCard
@@ -199,15 +222,6 @@ export function DashboardPage() {
             {dashboard.fuel_trend.length > 0 && (
               <ChartCard title="Cena paliva za litr">
                 <PricePerLiterChart data={dashboard.fuel_trend} />
-              </ChartCard>
-            )}
-
-            {hasConsumption && (
-              <ChartCard title="Spotřeba v čase">
-                <ConsumptionTrendChart
-                  data={dashboard.fuel_trend}
-                  average={dashboard.avg_consumption_l_per_100km}
-                />
               </ChartCard>
             )}
 

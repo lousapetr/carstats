@@ -121,8 +121,9 @@ export type TimelineItem =
       description: string | null
     }
 
-/** `all`, `ytd`, `12m` or `year:YYYY` — see backend/app/dashboard/periods.py. */
-export type Period = 'all' | 'ytd' | '12m' | `year:${number}`
+/** `all`, `ytd`, `12m`, `year:YYYY` or `range:YYYY-MM-DD..YYYY-MM-DD` — see
+ *  backend/app/dashboard/periods.py. */
+export type Period = 'all' | 'ytd' | '12m' | `year:${number}` | `range:${string}..${string}`
 
 export interface PeriodInfo {
   key: Period
@@ -158,6 +159,8 @@ export interface Dashboard {
   cost_per_km: number | null
   avg_consumption_l_per_100km: number | null
   avg_consumption_delta: number | null
+  avg_price_per_liter: number | null
+  avg_price_per_liter_delta: number | null
   consumption_interval_count: number
   cost_breakdown: CostBreakdown
   fuel_trend: FuelTrendPoint[]

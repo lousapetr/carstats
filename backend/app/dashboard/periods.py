@@ -1,4 +1,5 @@
-"""The dashboard's `period` parameter: `all`, `ytd`, `12m` or `year:YYYY`.
+"""The dashboard's `period` parameter: `all`, `ytd`, `12m`, `year:YYYY` or
+`range:YYYY-MM-DD..YYYY-MM-DD` (a custom range, both ends inclusive).
 
 Relative periods are resolved against a `today` passed in by the caller, so a
 single request computes every window from the same date.
@@ -8,7 +9,7 @@ import calendar
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-PERIOD_PATTERN = r"^(all|ytd|12m|year:[1-9]\d{3})$"
+PERIOD_PATTERN = r"^(all|ytd|12m|year:[1-9]\d{3}|range:\d{4}-\d{2}-\d{2}\.\.\d{4}-\d{2}-\d{2})$"
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,15 @@ def _year(period: str) -> int:
     return int(period.removeprefix("year:"))
 
 
+def _range(period: str) -> DateWindow:
+    """Raises ValueError for a date that doesn't exist or a start after the end —
+    things the pattern alone can't rule out."""
+    start, end = (date.fromisoformat(part) for part in period.removeprefix("range:").split(".."))
+    if start > end:
+        raise ValueError(f"Range starts after it ends: {period}")
+    return DateWindow(start, end)
+
+
 def parse_period(period: str, today: date) -> DateWindow:
     if period == "all":
         return DateWindow(None, None)
@@ -47,6 +57,8 @@ def parse_period(period: str, today: date) -> DateWindow:
     if period.startswith("year:"):
         year = _year(period)
         return DateWindow(date(year, 1, 1), date(year, 12, 31))
+    if period.startswith("range:"):
+        return _range(period)
     raise ValueError(f"Unknown period: {period}")
 
 
@@ -65,4 +77,10 @@ def previous_window(period: str, today: date) -> DateWindow | None:
     if period.startswith("year:"):
         year = _year(period) - 1
         return DateWindow(date(year, 1, 1), date(year, 12, 31))
+    if period.startswith("range:"):
+        # The same number of days, ending the day before the range starts.
+        current = _range(period)
+        assert current.start is not None and current.end is not None
+        length = current.end - current.start + timedelta(days=1)
+        return DateWindow(current.start - length, current.start - timedelta(days=1))
     raise ValueError(f"Unknown period: {period}")

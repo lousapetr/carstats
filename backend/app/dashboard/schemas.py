@@ -101,6 +101,9 @@ class Dashboard(BaseModel):
     avg_consumption_l_per_100km: float | None
     # Absolute l/100 km, not percent.
     avg_consumption_delta: float | None
+    # Fuel cost over litres bought in the window, in Kč/l; delta is absolute.
+    avg_price_per_liter: float | None
+    avg_price_per_liter_delta: float | None
     consumption_interval_count: int
     cost_breakdown: CostBreakdown
     fuel_trend: list[FuelTrendPoint]
