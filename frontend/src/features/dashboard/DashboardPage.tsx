@@ -221,7 +221,10 @@ export function DashboardPage() {
 
             {dashboard.fuel_trend.length > 0 && (
               <ChartCard title="Cena paliva za litr">
-                <PricePerLiterChart data={dashboard.fuel_trend} />
+                <PricePerLiterChart
+                  data={dashboard.fuel_trend}
+                  average={dashboard.avg_price_per_liter}
+                />
               </ChartCard>
             )}
 
