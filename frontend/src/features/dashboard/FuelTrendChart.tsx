@@ -1,4 +1,13 @@
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import type { FuelTrendPoint } from '../../types'
 import { formatDate, formatShortDate } from '../../lib/dates'
 import { formatConsumption, formatNumber, formatPricePerLiter } from '../../lib/format'
@@ -12,12 +21,14 @@ function SingleSeriesLineChart({
   color,
   caption,
   formatValue,
+  average,
 }: {
   data: FuelTrendPoint[]
   dataKey: 'price_per_liter' | 'consumption_l_per_100km'
   color: string
   caption: string
   formatValue: (value: number) => string
+  average?: number | null
 }) {
   const theme = useChartTheme()
   const tick = { fontSize: 11, fill: theme.tick }
@@ -55,6 +66,19 @@ function SingleSeriesLineChart({
               )
             }}
           />
+          {average != null && (
+            <ReferenceLine
+              y={average}
+              stroke={theme.tick}
+              strokeDasharray="4 4"
+              label={{
+                value: `průměr ${formatNumber(average)}`,
+                position: 'insideTopRight',
+                fontSize: 11,
+                fill: theme.tick,
+              }}
+            />
+          )}
           <Line
             type="monotone"
             dataKey={dataKey}
@@ -82,15 +106,22 @@ export function PricePerLiterChart({ data }: { data: FuelTrendPoint[] }) {
   )
 }
 
-export function ConsumptionTrendChart({ data }: { data: FuelTrendPoint[] }) {
+export function ConsumptionTrendChart({
+  data,
+  average,
+}: {
+  data: FuelTrendPoint[]
+  average: number | null
+}) {
   const theme = useChartTheme()
   return (
     <SingleSeriesLineChart
       data={data.filter((d) => d.consumption_l_per_100km !== null)}
       dataKey="consumption_l_per_100km"
       color={theme.consumption}
-      caption="Spojnicový graf spotřeby v litrech na 100 km podle data plného tankování."
+      caption="Spojnicový graf spotřeby v litrech na 100 km podle data plného tankování, s čárou průměru za období."
       formatValue={(v) => formatConsumption(v)}
+      average={average}
     />
   )
 }

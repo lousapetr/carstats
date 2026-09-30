@@ -1,4 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import type { ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { dashboardApi } from '../../api/dashboard'
 import { Card } from '../../components/ui/Card'
 import { ErrorState } from '../../components/ui/ErrorState'
@@ -6,12 +8,29 @@ import { LoadingState } from '../../components/ui/LoadingState'
 import { StatTile } from '../../components/ui/StatTile'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { formatDate } from '../../lib/dates'
-import { formatConsumption, formatCostPerKm, formatCzk, formatKm, formatLiters } from '../../lib/format'
+import {
+  formatConsumption,
+  formatCostPerKm,
+  formatCzk,
+  formatKm,
+  formatLiters,
+  formatPercent,
+  pluralize,
+} from '../../lib/format'
+import {
+  DEFAULT_PERIOD,
+  parsePeriod,
+  periodLabel,
+  previousPeriodLabel,
+} from '../../lib/periods'
 import { serviceEntryLabel } from '../../lib/serviceTypes'
-import type { TimelineItem } from '../../types'
+import type { Period, TimelineItem } from '../../types'
 import { CostBreakdownChart } from './CostBreakdownChart'
+import { Delta } from './Delta'
 import { FirstRunCard } from './FirstRunCard'
 import { ConsumptionTrendChart, PricePerLiterChart } from './FuelTrendChart'
+import { MonthlyCostChart } from './MonthlyCostChart'
+import { PeriodSelector } from './PeriodSelector'
 
 function timelineLabel(item: TimelineItem) {
   return item.kind === 'fuel'
@@ -19,141 +38,206 @@ function timelineLabel(item: TimelineItem) {
     : serviceEntryLabel(item.service_type, item.description)
 }
 
+function ChartCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Card>
+      <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
+      {children}
+    </Card>
+  )
+}
+
 export function DashboardPage() {
-  const summaryQuery = useQuery({
-    queryKey: ['dashboard', 'summary'],
-    queryFn: dashboardApi.summary,
-  })
-  const fuelTrendQuery = useQuery({
-    queryKey: ['dashboard', 'fuel-trend'],
-    queryFn: dashboardApi.fuelTrend,
-  })
-  const costBreakdownQuery = useQuery({
-    queryKey: ['dashboard', 'cost-breakdown'],
-    queryFn: dashboardApi.costBreakdown,
-  })
-  const queries = [summaryQuery, fuelTrendQuery, costBreakdownQuery]
+  const [searchParams, setSearchParams] = useSearchParams()
+  const period = parsePeriod(searchParams.get('period'))
 
-  if (queries.some((q) => q.isError)) {
-    return (
-      <ErrorState
-        message="Přehled se nepodařilo načíst."
-        onRetry={() => queries.filter((q) => q.isError).forEach((q) => void q.refetch())}
-      />
-    )
+  const {
+    data: dashboard,
+    isPending,
+    isPlaceholderData,
+    refetch,
+  } = useQuery({
+    queryKey: ['dashboard', period],
+    queryFn: () => dashboardApi.get(period),
+    placeholderData: keepPreviousData,
+  })
+
+  function selectPeriod(next: Period) {
+    setSearchParams((params) => {
+      if (next === DEFAULT_PERIOD) params.delete('period')
+      else params.set('period', next)
+      return params
+    })
   }
-  const summary = summaryQuery.data
-  const fuelTrend = fuelTrendQuery.data
-  const costBreakdown = costBreakdownQuery.data
-  if (!summary || !fuelTrend || !costBreakdown) return <LoadingState />
 
-  const isFirstRun = summary.total_fuel_entries === 0 && summary.total_maintenance_entries === 0
+  if (isPending) return <LoadingState />
+  // A failed background refetch keeps showing the last good data; only a
+  // query with nothing to show falls through to the error.
+  if (!dashboard) {
+    return <ErrorState message="Přehled se nepodařilo načíst." onRetry={() => void refetch()} />
+  }
 
   const carLabel =
-    summary.car.name || [summary.car.year, summary.car.make, summary.car.model]
-      .filter(Boolean)
-      .join(' ')
+    dashboard.car.name ||
+    [dashboard.car.year, dashboard.car.make, dashboard.car.model].filter(Boolean).join(' ')
+  const vs = previousPeriodLabel(dashboard.period)
+  const { totals } = dashboard
+  const attention = dashboard.upcoming_reminders.filter((r) => r.status !== 'ok')
+  const hasConsumption = dashboard.fuel_trend.some((p) => p.consumption_l_per_100km !== null)
 
   return (
     <div className="flex flex-col gap-4">
+      {/* The car and its reminders are about now, not the selected period, so
+          they sit above the selector that scopes everything below it. */}
       <div>
         <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           {carLabel || 'Vaše auto'}
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          {formatKm(summary.car.current_mileage_km)}
+          {formatKm(dashboard.car.current_mileage_km)}
         </p>
       </div>
 
-      {summary.upcoming_reminders.some((r) => r.status !== 'ok') && (
+      {attention.length > 0 && (
         <Card className="flex flex-col gap-2">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Vyžaduje pozornost
           </h2>
-          {summary.upcoming_reminders
-            .filter((r) => r.status !== 'ok')
-            .map((r) => (
-              <div key={r.id} className="flex items-center justify-between text-sm">
-                <span className="text-gray-700 dark:text-gray-300">{r.title}</span>
-                <StatusBadge status={r.status} />
-              </div>
-            ))}
+          {attention.map((r) => (
+            <div key={r.id} className="flex items-center justify-between text-sm">
+              <span className="text-gray-700 dark:text-gray-300">{r.title}</span>
+              <StatusBadge status={r.status} />
+            </div>
+          ))}
         </Card>
       )}
 
-      {isFirstRun ? (
+      {/* No entries in any year means nothing has been logged yet. */}
+      {dashboard.available_years.length === 0 ? (
         <FirstRunCard />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatTile label="Celkové náklady" value={formatCzk(summary.total_cost)} />
-            <StatTile label="Náklady na palivo" value={formatCzk(summary.total_fuel_cost)} />
-            <StatTile label="Náklady na servis" value={formatCzk(summary.total_maintenance_cost)} />
-            <StatTile label="Náklady na km" value={formatCostPerKm(summary.cost_per_km)} />
-            <StatTile label="Náklady letos" value={formatCzk(summary.total_cost_this_year)} />
-            <StatTile label="Náklady vloni" value={formatCzk(summary.total_cost_last_year)} />
-            <StatTile
-              label="Spotřeba celkem"
-              value={formatConsumption(summary.avg_consumption_l_per_100km)}
-            />
-            <StatTile
-              label="Spotřeba letos"
-              value={formatConsumption(summary.avg_consumption_l_per_100km_this_year)}
-            />
-            <StatTile
-              label="Spotřeba vloni"
-              value={formatConsumption(summary.avg_consumption_l_per_100km_last_year)}
-            />
-          </div>
+          <PeriodSelector
+            value={period}
+            years={dashboard.available_years}
+            onChange={selectPeriod}
+          />
 
-          {fuelTrend.length > 0 && (
+          <div
+            className={`flex flex-col gap-4 transition-opacity ${isPlaceholderData ? 'opacity-60' : ''}`}
+            aria-busy={isPlaceholderData}
+          >
             <Card>
-              <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                Cena paliva za litr
-              </h2>
-              <PricePerLiterChart data={fuelTrend} />
+              <div className="text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400">
+                Celkové náklady
+              </div>
+              <div className="mt-1 text-4xl font-semibold text-gray-900 sm:text-5xl dark:text-gray-100">
+                {formatCzk(totals.total)}
+              </div>
+              <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {periodLabel(dashboard.period.key)}
+                {dashboard.total_cost_delta_pct !== null && (
+                  <>
+                    {' · '}
+                    <Delta
+                      value={dashboard.total_cost_delta_pct}
+                      formatMagnitude={formatPercent}
+                      vs={vs}
+                    />
+                  </>
+                )}
+              </div>
             </Card>
-          )}
 
-          {fuelTrend.some((p) => p.consumption_l_per_100km !== null) && (
-            <Card>
-              <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                Spotřeba v čase
-              </h2>
-              <ConsumptionTrendChart data={fuelTrend} />
-            </Card>
-          )}
-
-          <Card>
-            <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-              Náklady podle kategorie
-            </h2>
-            <CostBreakdownChart data={costBreakdown} />
-          </Card>
-
-          <Card>
-            <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
-              Poslední aktivita
-            </h2>
-            <div className="flex flex-col">
-              {summary.recent_activity.map((item, i) => (
-                <div
-                  key={i}
-                  className={`flex items-center justify-between rounded-md px-2 py-1.5 text-sm ${
-                    i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-900' : ''
-                  }`}
-                >
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {formatDate(item.date)} · {timelineLabel(item)}
-                  </span>
-                  <span className="text-gray-500 dark:text-gray-400">{formatCzk(item.cost)}</span>
-                </div>
-              ))}
-              {summary.recent_activity.length === 0 && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">Zatím žádná aktivita.</p>
-              )}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatTile
+                label="Palivo"
+                value={formatCzk(totals.fuel)}
+                sub={`${formatLiters(totals.fuel_liters)} · ${pluralize(totals.fuel_entries, 'tankování', 'tankování', 'tankování')}`}
+              />
+              <StatTile
+                label="Servis"
+                value={formatCzk(totals.maintenance)}
+                sub={pluralize(totals.maintenance_entries, 'záznam', 'záznamy', 'záznamů')}
+              />
+              <StatTile
+                label="Spotřeba"
+                value={formatConsumption(dashboard.avg_consumption_l_per_100km)}
+                sub={
+                  dashboard.consumption_interval_count > 0 && (
+                    <>
+                      <Delta
+                        value={dashboard.avg_consumption_delta}
+                        formatMagnitude={(v) => formatConsumption(v)}
+                        vs={vs}
+                      />
+                      {dashboard.avg_consumption_delta !== null && <br />}
+                      z{' '}
+                      {pluralize(dashboard.consumption_interval_count, 'intervalu', 'intervalů', 'intervalů')}
+                    </>
+                  )
+                }
+              />
+              <StatTile
+                label="Náklady/km"
+                value={formatCostPerKm(dashboard.cost_per_km)}
+                sub={dashboard.distance_km !== null && `${formatKm(dashboard.distance_km)} v období`}
+              />
             </div>
-          </Card>
+
+            {dashboard.monthly_costs.length > 0 && (
+              <ChartCard
+                title={dashboard.monthly_granularity === 'year' ? 'Roční náklady' : 'Měsíční náklady'}
+              >
+                <MonthlyCostChart
+                  data={dashboard.monthly_costs}
+                  granularity={dashboard.monthly_granularity}
+                />
+              </ChartCard>
+            )}
+
+            {dashboard.fuel_trend.length > 0 && (
+              <ChartCard title="Cena paliva za litr">
+                <PricePerLiterChart data={dashboard.fuel_trend} />
+              </ChartCard>
+            )}
+
+            {hasConsumption && (
+              <ChartCard title="Spotřeba v čase">
+                <ConsumptionTrendChart
+                  data={dashboard.fuel_trend}
+                  average={dashboard.avg_consumption_l_per_100km}
+                />
+              </ChartCard>
+            )}
+
+            <ChartCard title="Náklady podle kategorie">
+              <CostBreakdownChart data={dashboard.cost_breakdown} />
+            </ChartCard>
+
+            <ChartCard title="Poslední aktivita">
+              <div className="flex flex-col">
+                {dashboard.recent_activity.map((item, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-between rounded-md px-2 py-1.5 text-sm ${
+                      i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-900' : ''
+                    }`}
+                  >
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {formatDate(item.date)} · {timelineLabel(item)}
+                    </span>
+                    <span className="text-gray-500 dark:text-gray-400">{formatCzk(item.cost)}</span>
+                  </div>
+                ))}
+                {dashboard.recent_activity.length === 0 && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    V tomto období žádná aktivita.
+                  </p>
+                )}
+              </div>
+            </ChartCard>
+          </div>
         </>
       )}
     </div>
