@@ -14,7 +14,7 @@ const schema = z.object({
   price_per_liter: z.coerce.number().positive('Musí být kladné číslo'),
   currency: z.enum(CURRENCY_CODES),
   full_tank: z.boolean().default(true),
-  notes: z.string().optional(),
+  notes: z.string().max(1000, 'Nejvýše 1000 znaků').optional(),
 })
 
 export type FuelFormValues = z.output<typeof schema>

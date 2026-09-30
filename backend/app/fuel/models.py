@@ -25,7 +25,12 @@ class FuelEntry(FuelEntryBase, table=True):
 
 
 class FuelEntryCreate(FuelEntryBase):
-    pass
+    # Bounds live here rather than on the base so an already-stored
+    # out-of-range row still serialises through FuelEntryRead.
+    mileage_km: float = Field(ge=0)
+    liters: float = Field(gt=0)
+    price_per_liter: float = Field(ge=0)
+    notes: str | None = Field(default=None, max_length=1000)
 
 
 class FuelEntryRead(FuelEntryBase):

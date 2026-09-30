@@ -7,14 +7,19 @@ import { Button } from '../../components/ui/Button'
 import { Field, inputClass } from '../../components/ui/Field'
 import { CURRENCIES, CURRENCY_CODES, CURRENCY_LABELS } from '../../lib/currencies'
 
+const emptyToUndefined = (val: unknown) => (val === '' ? undefined : val)
+
 const schema = z.object({
   date: z.string().min(1, 'Povinné pole'),
   mileage_km: z.coerce.number().positive('Musí být kladné číslo'),
   type: z.enum(['oil_change', 'tires', 'engine_service', 'additives', 'other']),
-  description: z.string().optional(),
-  cost: z.coerce.number().min(0, 'Musí být 0 nebo více'),
+  description: z.string().max(1000, 'Nejvýše 1000 znaků').optional(),
+  cost: z.preprocess(
+    emptyToUndefined,
+    z.coerce.number({ error: 'Povinné pole' }).min(0, 'Musí být 0 nebo více'),
+  ),
   currency: z.enum(CURRENCY_CODES),
-  notes: z.string().optional(),
+  notes: z.string().max(1000, 'Nejvýše 1000 znaků').optional(),
 })
 
 export type MaintenanceFormValues = z.output<typeof schema>

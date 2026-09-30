@@ -35,7 +35,12 @@ class ServiceEntry(ServiceEntryBase, table=True):
 
 
 class ServiceEntryCreate(ServiceEntryBase):
-    pass
+    # Bounds live here rather than on the base so an already-stored
+    # out-of-range row still serialises through ServiceEntryRead.
+    mileage_km: float = Field(ge=0)
+    description: str | None = Field(default=None, max_length=1000)
+    cost: float = Field(ge=0)
+    notes: str | None = Field(default=None, max_length=1000)
 
 
 class ServiceEntryRead(ServiceEntryBase):

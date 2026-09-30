@@ -7,12 +7,12 @@ import { Field, inputClass } from '../../components/ui/Field'
 const emptyToUndefined = (val: unknown) => (val === '' ? undefined : val)
 
 const schema = z.object({
-  title: z.string().min(1, 'Povinné pole'),
+  title: z.string().trim().min(1, 'Povinné pole').max(200, 'Nejvýše 200 znaků'),
   due_date: z.preprocess(emptyToUndefined, z.string().optional()),
   due_mileage_km: z.preprocess(emptyToUndefined, z.coerce.number().positive().optional()),
   recurrence_days: z.preprocess(emptyToUndefined, z.coerce.number().int().positive().optional()),
   recurrence_km: z.preprocess(emptyToUndefined, z.coerce.number().positive().optional()),
-  notes: z.string().optional(),
+  notes: z.string().max(1000, 'Nejvýše 1000 znaků').optional(),
 })
 
 export type ReminderFormValues = z.output<typeof schema>

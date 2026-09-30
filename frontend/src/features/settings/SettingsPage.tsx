@@ -49,6 +49,7 @@ export function SettingsPage() {
           <div className="col-span-2">
             <Field label="Přezdívka">
               <input
+                maxLength={200}
                 type="text"
                 className={inputClass}
                 value={form.name}
@@ -58,6 +59,7 @@ export function SettingsPage() {
           </div>
           <Field label="Značka">
             <input
+              maxLength={200}
               type="text"
               className={inputClass}
               value={form.make}
@@ -66,6 +68,7 @@ export function SettingsPage() {
           </Field>
           <Field label="Model">
             <input
+              maxLength={200}
               type="text"
               className={inputClass}
               value={form.model}
@@ -75,6 +78,8 @@ export function SettingsPage() {
           <Field label="Rok výroby">
             <input
               type="number"
+              min={1900}
+              max={2100}
               className={inputClass}
               value={form.year ?? ''}
               onChange={(e) =>

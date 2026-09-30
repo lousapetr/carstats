@@ -1,5 +1,7 @@
 from datetime import date, timedelta
 
+import pytest
+
 
 def test_reminder_status_ok_when_far_from_due(client):
     reminder = client.post(
@@ -114,3 +116,48 @@ def test_completing_reminder_recurring_by_km_without_due_mileage(client):
     assert completed["completed_at"] is None
     assert completed["due_mileage_km"] == 25000
     assert completed["status"] == "ok"
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"title": ""},
+        {"title": "x" * 201},
+        {"notes": "x" * 1001},
+        {"due_mileage_km": -1},
+        {"recurrence_days": 0},
+        {"recurrence_days": -30},
+        {"recurrence_km": 0},
+        {"recurrence_km": -1000},
+    ],
+)
+def test_create_reminder_rejects_out_of_range_values(client, override):
+    response = client.post("/api/reminders", json={"title": "Oil change"} | override)
+    assert response.status_code == 422
+    assert client.get("/api/reminders").json() == []
+
+
+def test_update_reminder_rejects_negative_recurrence(client):
+    reminder = client.post("/api/reminders", json={"title": "Oil change"}).json()
+    response = client.put(
+        f"/api/reminders/{reminder['id']}",
+        json={"title": "Oil change", "recurrence_days": -30},
+    )
+    assert response.status_code == 422
+
+
+def test_completing_recurring_reminder_always_moves_due_date_forward(client):
+    reminder = client.post(
+        "/api/reminders",
+        json={"title": "Highway ticket", "due_date": "2020-01-01", "recurrence_days": 365},
+    ).json()
+    assert reminder["status"] == "overdue"
+
+    previous_due = date.fromisoformat(reminder["due_date"])
+    for _ in range(3):
+        completed = client.post(f"/api/reminders/{reminder['id']}/complete").json()
+        due = date.fromisoformat(completed["due_date"])
+        assert due > previous_due
+        assert due > date.today()
+        assert completed["status"] != "overdue"
+        previous_due = due

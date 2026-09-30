@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_create_service_entry_updates_car_mileage(client):
     response = client.post(
         "/api/service-entries",
@@ -87,3 +90,19 @@ def test_create_service_entry_with_eur_converts_to_czk(client):
     body = response.json()
     assert body["cost"] == 50.0
     assert body["cost_czk"] == 1250.0
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"cost": -1},
+        {"mileage_km": -1},
+        {"description": "x" * 1001},
+        {"notes": "x" * 1001},
+    ],
+)
+def test_create_service_entry_rejects_out_of_range_values(client, override):
+    payload = {"date": "2026-08-02", "mileage_km": 10200, "type": "oil_change", "cost": 80}
+    response = client.post("/api/service-entries", json=payload | override)
+    assert response.status_code == 422
+    assert client.get("/api/service-entries").json() == []

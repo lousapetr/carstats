@@ -26,7 +26,13 @@ class Reminder(ReminderBase, table=True):
 
 
 class ReminderCreate(ReminderBase):
-    pass
+    # Bounds live here rather than on the base so an already-stored
+    # out-of-range row still serialises through ReminderRead.
+    title: str = Field(min_length=1, max_length=200)
+    notes: str | None = Field(default=None, max_length=1000)
+    due_mileage_km: float | None = Field(default=None, ge=0)
+    recurrence_days: int | None = Field(default=None, gt=0)
+    recurrence_km: float | None = Field(default=None, gt=0)
 
 
 class ReminderRead(ReminderBase):

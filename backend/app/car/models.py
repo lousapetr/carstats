@@ -18,6 +18,9 @@ class CarProfile(CarProfileBase, table=True):
 
 
 class CarProfileUpdate(CarProfileBase):
+    name: str = Field(default="", max_length=200)
+    make: str = Field(max_length=200)
+    model: str = Field(max_length=200)
     # Bounded so a typo'd year can't end up in the dashboard heading.
     year: int | None = Field(default=None, ge=1900, le=2100)
 

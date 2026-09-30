@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_create_fuel_entry_updates_car_mileage(client):
     response = client.post(
         "/api/fuel-entries",
@@ -193,4 +196,21 @@ def test_schema_violation_is_rejected_and_stores_nothing(client):
     detail = response.json()["detail"]
     assert isinstance(detail, list)
     assert all("msg" in item for item in detail)
+    assert client.get("/api/fuel-entries").json() == []
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"liters": 0},
+        {"liters": -5},
+        {"price_per_liter": -1},
+        {"mileage_km": -1},
+        {"notes": "x" * 1001},
+    ],
+)
+def test_create_fuel_entry_rejects_out_of_range_values(client, override):
+    payload = {"date": "2026-08-01", "mileage_km": 10000, "liters": 40, "price_per_liter": 1.5}
+    response = client.post("/api/fuel-entries", json=payload | override)
+    assert response.status_code == 422
     assert client.get("/api/fuel-entries").json() == []
