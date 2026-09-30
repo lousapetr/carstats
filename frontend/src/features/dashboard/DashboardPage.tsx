@@ -35,7 +35,7 @@ import { PeriodSelector } from './PeriodSelector'
 
 function timelineLabel(item: TimelineItem) {
   return item.kind === 'fuel'
-    ? `Tankování (${formatLiters(item.liters)})`
+    ? `Tankování (${formatLiters(item.liters)} · ${formatPricePerLiter(item.price_per_liter)})`
     : serviceEntryLabel(item.service_type, item.description)
 }
 

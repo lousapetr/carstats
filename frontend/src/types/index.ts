@@ -112,7 +112,7 @@ export interface ReminderInput {
 }
 
 export type TimelineItem =
-  | { date: string; kind: 'fuel'; cost: number; liters: number }
+  | { date: string; kind: 'fuel'; cost: number; liters: number; price_per_liter: number }
   | {
       date: string
       kind: 'service'
