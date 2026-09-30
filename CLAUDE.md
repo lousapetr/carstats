@@ -117,10 +117,12 @@ converting on read.
 
 `GET /api/dashboard?period=…` is the dashboard's only endpoint and returns everything the page
 shows, so one `date.today()` scopes it all and one selector change is one refetch. `period` is
-`all | ytd | 12m | year:YYYY` (default `all`, `PERIOD_PATTERN` in `dashboard/periods.py`; anything
-else is a 422). `12m` is the current month plus the eleven before it; `ytd` is compared with the
-*same stretch* of last year (29 Feb falls back to the 28th), not the whole year. `all` has no
-previous window, so no deltas.
+`all | ytd | 12m | year:YYYY | range:YYYY-MM-DD..YYYY-MM-DD` (default `all`, `PERIOD_PATTERN` in
+`dashboard/periods.py`; anything else — including a nonexistent date or a reversed range — is a
+422). `12m` is the current month plus the eleven before it; `ytd` is compared with the *same
+stretch* of last year (29 Feb falls back to the 28th), not the whole year; a custom `range` is
+compared with the same number of days just before it. `all` has no previous window, so no
+deltas.
 
 Two filtering rules live side by side in `get_dashboard`, on purpose: **costs filter entries** by
 date, but **consumption filters intervals** — `full_to_full_intervals()` runs over the whole fuel

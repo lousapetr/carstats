@@ -50,6 +50,10 @@ def _avg_consumption(intervals: Sequence[FullToFullInterval]) -> float | None:
     return round(sum(i.liters for i in intervals) / total_km * 100, 2)
 
 
+def _avg_price_per_liter(totals: CostTotals) -> float | None:
+    return round(totals.fuel / totals.fuel_liters, 2) if totals.fuel_liters > 0 else None
+
+
 def _totals(fuel: Sequence[FuelEntry], service: Sequence[ServiceEntry]) -> CostTotals:
     fuel_cost = sum(_fuel_cost_czk(e) for e in fuel)
     service_cost = sum(_service_cost_czk(e) for e in service)
@@ -186,9 +190,12 @@ def get_dashboard(db: Session, period: str, today: date | None = None) -> Dashbo
     in_window = [i for i in intervals if window.contains(i.date)]
     avg_consumption = _avg_consumption(in_window)
 
+    avg_price_per_liter = _avg_price_per_liter(totals)
+
     previous_totals = None
     total_cost_delta_pct = None
     avg_consumption_delta = None
+    avg_price_per_liter_delta = None
     if previous is not None:
         previous_totals = _totals(
             [e for e in all_fuel if previous.contains(e.date)],
@@ -201,6 +208,9 @@ def get_dashboard(db: Session, period: str, today: date | None = None) -> Dashbo
         previous_consumption = _avg_consumption([i for i in intervals if previous.contains(i.date)])
         if avg_consumption is not None and previous_consumption is not None:
             avg_consumption_delta = round(avg_consumption - previous_consumption, 2)
+        previous_price = _avg_price_per_liter(previous_totals)
+        if avg_price_per_liter is not None and previous_price is not None:
+            avg_price_per_liter_delta = round(avg_price_per_liter - previous_price, 2)
 
     distance_km = _distance_km(window, today, profile.current_mileage_km, all_fuel, all_service)
     cost_per_km = None
@@ -242,6 +252,8 @@ def get_dashboard(db: Session, period: str, today: date | None = None) -> Dashbo
         cost_per_km=cost_per_km,
         avg_consumption_l_per_100km=avg_consumption,
         avg_consumption_delta=avg_consumption_delta,
+        avg_price_per_liter=avg_price_per_liter,
+        avg_price_per_liter_delta=avg_price_per_liter_delta,
         consumption_interval_count=len(in_window),
         cost_breakdown=_cost_breakdown(fuel, service),
         fuel_trend=fuel_trend,
