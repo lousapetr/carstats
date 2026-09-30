@@ -28,7 +28,9 @@ export default defineConfig({
         description: 'Evidence tankování, servisu a nákladů na auto',
         lang: 'cs',
         theme_color: '#111827',
-        background_color: '#111827',
+        // Firefox on Android also fills the launcher icon's transparent
+        // background with this, so it matches the gray of the icon tile.
+        background_color: '#d1d5db',
         display: 'standalone',
         // Firefox on Android uses start_url as its home-screen shortcut's ID,
         // and Android launchers keep a shortcut's icon under that ID, so a
@@ -36,7 +38,7 @@ export default defineConfig({
         // Bump icon= whenever the icon changes; id keeps the app's identity
         // stable for browsers that key on it instead.
         id: '/',
-        start_url: '/?icon=3',
+        start_url: '/?icon=4',
         // PNGs only. Firefox on Android builds an adaptive launcher icon from
         // any maskable entry, and Nova shows that as a blank gray square; with
         // no maskable entry it pins a plain bitmap, which Nova draws. The
