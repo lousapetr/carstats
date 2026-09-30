@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { remindersApi } from '../../api/reminders'
-import { Button } from '../../components/ui/Button'
+import { ActionMenu } from '../../components/ui/ActionMenu'
 import { Card } from '../../components/ui/Card'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { confirmDialog } from '../../lib/confirmBus'
@@ -96,24 +96,21 @@ export function RemindersPage() {
                   `Při ${reminder.due_mileage_km.toLocaleString()} km`}
               </div>
             </div>
-            <div className="flex shrink-0 gap-2">
-              <Button variant="secondary" onClick={() => setEditingReminder(reminder)}>
-                Upravit
-              </Button>
-              <Button variant="secondary" onClick={() => completeMutation.mutate(reminder.id)}>
-                Hotovo
-              </Button>
-              <Button
-                variant="danger"
-                onClick={async () => {
-                  if (await confirmDialog('Opravdu smazat tuto připomínku?')) {
-                    deleteMutation.mutate(reminder.id)
-                  }
-                }}
-              >
-                Smazat
-              </Button>
-            </div>
+            <ActionMenu
+              actions={[
+                { label: 'Upravit', onClick: () => setEditingReminder(reminder) },
+                { label: 'Hotovo', onClick: () => completeMutation.mutate(reminder.id) },
+                {
+                  label: 'Smazat',
+                  danger: true,
+                  onClick: async () => {
+                    if (await confirmDialog('Opravdu smazat tuto připomínku?')) {
+                      deleteMutation.mutate(reminder.id)
+                    }
+                  },
+                },
+              ]}
+            />
           </Card>
         ))}
         {reminders?.length === 0 && (

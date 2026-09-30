@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { fuelApi } from '../../api/fuel'
-import { Button } from '../../components/ui/Button'
+import { ActionMenu } from '../../components/ui/ActionMenu'
 import { Card } from '../../components/ui/Card'
 import { confirmDialog } from '../../lib/confirmBus'
 import { formatDate } from '../../lib/dates'
@@ -76,8 +76,8 @@ export function FuelLogPage() {
 
       <div className="flex flex-col gap-2">
         {entries?.map((entry) => (
-          <Card key={entry.id} className="flex items-center justify-between">
-            <div>
+          <Card key={entry.id} className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
               <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {formatDate(entry.date)} · {entry.mileage_km.toLocaleString()} km
                 {!entry.full_tank && (
@@ -98,21 +98,20 @@ export function FuelLogPage() {
                 <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">{entry.notes}</div>
               )}
             </div>
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => setEditingEntry(entry)}>
-                Upravit
-              </Button>
-              <Button
-                variant="danger"
-                onClick={async () => {
-                  if (await confirmDialog('Opravdu smazat toto tankování?')) {
-                    deleteMutation.mutate(entry.id)
-                  }
-                }}
-              >
-                Smazat
-              </Button>
-            </div>
+            <ActionMenu
+              actions={[
+                { label: 'Upravit', onClick: () => setEditingEntry(entry) },
+                {
+                  label: 'Smazat',
+                  danger: true,
+                  onClick: async () => {
+                    if (await confirmDialog('Opravdu smazat toto tankování?')) {
+                      deleteMutation.mutate(entry.id)
+                    }
+                  },
+                },
+              ]}
+            />
           </Card>
         ))}
         {entries?.length === 0 && (

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { maintenanceApi } from '../../api/maintenance'
-import { Button } from '../../components/ui/Button'
+import { ActionMenu } from '../../components/ui/ActionMenu'
 import { Card } from '../../components/ui/Card'
 import { confirmDialog } from '../../lib/confirmBus'
 import { formatDate } from '../../lib/dates'
@@ -87,8 +87,8 @@ export function MaintenanceLogPage() {
       <div className="flex flex-col gap-2">
         {entries?.map((entry) => (
           <Card key={entry.id}>
-            <div className="flex items-start justify-between">
-              <div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
                 <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   {TYPE_LABELS[entry.type]} · {formatDate(entry.date)}
                 </div>
@@ -102,21 +102,20 @@ export function MaintenanceLogPage() {
                   </div>
                 )}
               </div>
-              <div className="flex shrink-0 gap-2">
-                <Button variant="secondary" onClick={() => setEditingEntry(entry)}>
-                  Upravit
-                </Button>
-                <Button
-                  variant="danger"
-                  onClick={async () => {
-                    if (await confirmDialog('Opravdu smazat tento záznam servisu?')) {
-                      deleteMutation.mutate(entry.id)
-                    }
-                  }}
-                >
-                  Smazat
-                </Button>
-              </div>
+              <ActionMenu
+                actions={[
+                  { label: 'Upravit', onClick: () => setEditingEntry(entry) },
+                  {
+                    label: 'Smazat',
+                    danger: true,
+                    onClick: async () => {
+                      if (await confirmDialog('Opravdu smazat tento záznam servisu?')) {
+                        deleteMutation.mutate(entry.id)
+                      }
+                    },
+                  },
+                ]}
+              />
             </div>
             <AttachmentUploader entryId={entry.id} attachments={entry.attachments} />
           </Card>
