@@ -15,12 +15,11 @@ export default defineConfig({
       // icon-source/favicon-maskable.svg via ImageMagick — regenerate rather
       // than hand-edit if the source design changes.
       workbox: {
-        // Google OAuth redirects (/auth/login, /auth/callback) are real
-        // server navigations, not SPA routes — without this the service
-        // worker's catch-all navigation fallback serves the cached
-        // index.html for them instead of letting them reach the backend,
-        // silently breaking login.
-        navigateFallbackDenylist: [/^\/auth\//],
+        // Google OAuth redirects (/auth/login, /auth/callback) and <a href>
+        // downloads (CSV export, attachments under /api/) are real server
+        // navigations, not SPA routes — the service worker's catch-all
+        // navigation fallback would answer them with the cached index.html.
+        navigateFallbackDenylist: [/^\/auth\//, /^\/api\//],
       },
       manifest: {
         name: 'CarStats',
