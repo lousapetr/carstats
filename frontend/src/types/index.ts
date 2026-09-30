@@ -139,6 +139,52 @@ export interface DashboardSummary {
   recent_activity: TimelineItem[]
 }
 
+/** `all`, `ytd`, `12m` or `year:YYYY` — see backend/app/dashboard/periods.py. */
+export type Period = 'all' | 'ytd' | '12m' | `year:${number}`
+
+export interface PeriodInfo {
+  key: Period
+  start: string | null
+  end: string | null
+  previous_start: string | null
+  previous_end: string | null
+}
+
+export interface CostTotals {
+  fuel: number
+  fuel_liters: number
+  fuel_entries: number
+  maintenance: number
+  maintenance_entries: number
+  total: number
+}
+
+export interface MonthlyCostPoint {
+  bucket: string
+  fuel: number
+  service: number
+}
+
+export interface Dashboard {
+  period: PeriodInfo
+  available_years: number[]
+  car: CarProfile
+  totals: CostTotals
+  previous_totals: CostTotals | null
+  total_cost_delta_pct: number | null
+  distance_km: number | null
+  cost_per_km: number | null
+  avg_consumption_l_per_100km: number | null
+  avg_consumption_delta: number | null
+  consumption_interval_count: number
+  cost_breakdown: CostBreakdown
+  fuel_trend: FuelTrendPoint[]
+  monthly_costs: MonthlyCostPoint[]
+  monthly_granularity: 'month' | 'year'
+  upcoming_reminders: Reminder[]
+  recent_activity: TimelineItem[]
+}
+
 export interface FuelTrendPoint {
   date: string
   price_total: number

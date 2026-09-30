@@ -56,3 +56,13 @@ export function formatConsumption(value: number | null): string {
 export function formatCostPerKm(value: number | null): string {
   return value !== null ? `${twoDecimals.format(value)} Kč/km` : '—'
 }
+
+export function formatPercent(value: number): string {
+  return `${wholeNumber.format(value)} %`
+}
+
+/** Czech count agreement: 1 záznam, 2–4 záznamy, 5+ záznamů. */
+export function pluralize(count: number, one: string, few: string, many: string): string {
+  const word = count === 1 ? one : count >= 2 && count <= 4 ? few : many
+  return `${wholeNumber.format(count)} ${word}`
+}
