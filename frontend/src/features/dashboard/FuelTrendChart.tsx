@@ -93,15 +93,22 @@ function SingleSeriesLineChart({
   )
 }
 
-export function PricePerLiterChart({ data }: { data: FuelTrendPoint[] }) {
+export function PricePerLiterChart({
+  data,
+  average,
+}: {
+  data: FuelTrendPoint[]
+  average: number | null
+}) {
   const theme = useChartTheme()
   return (
     <SingleSeriesLineChart
       data={data}
       dataKey="price_per_liter"
       color={theme.pricePerLiter}
-      caption="Spojnicový graf ceny paliva za litr v Kč podle data tankování."
+      caption="Spojnicový graf ceny paliva za litr v Kč podle data tankování, s čárou průměrné ceny za období."
       formatValue={formatPricePerLiter}
+      average={average}
     />
   )
 }
