@@ -81,20 +81,29 @@ def get_summary(db: Session) -> DashboardSummary:
         [i for i in intervals if i.date.year == this_year - 1]
     )
 
-    timeline: list[TimelineItem] = [
-        FuelTimelineItem(date=e.date, cost=round(_fuel_cost_czk(e), 2), liters=e.liters)
+    # Newest first by odometer rather than date, which can't order two
+    # entries logged on the same day.
+    by_mileage: list[tuple[float, TimelineItem]] = [
+        (
+            e.mileage_km,
+            FuelTimelineItem(date=e.date, cost=round(_fuel_cost_czk(e), 2), liters=e.liters),
+        )
         for e in fuel_entries
     ]
-    timeline += [
-        ServiceTimelineItem(
-            date=e.date,
-            cost=round(_service_cost_czk(e), 2),
-            service_type=e.type,
-            description=e.description,
+    by_mileage += [
+        (
+            e.mileage_km,
+            ServiceTimelineItem(
+                date=e.date,
+                cost=round(_service_cost_czk(e), 2),
+                service_type=e.type,
+                description=e.description,
+            ),
         )
         for e in service_entries
     ]
-    timeline.sort(key=lambda item: item.date, reverse=True)
+    by_mileage.sort(key=lambda pair: pair[0], reverse=True)
+    timeline = [item for _, item in by_mileage]
 
     return DashboardSummary(
         car=CarProfileRead.model_validate(profile, from_attributes=True),
@@ -116,7 +125,8 @@ def get_summary(db: Session) -> DashboardSummary:
 
 
 def get_fuel_trend(db: Session) -> list[FuelTrendPoint]:
-    entries = sorted(list_entries_with_stats(db), key=lambda e: e.date)
+    # Oldest first by odometer, not date, so same-day fill-ups stay in order.
+    entries = list(reversed(list_entries_with_stats(db)))
     return [
         FuelTrendPoint(
             date=e.date,

@@ -214,3 +214,21 @@ def test_create_fuel_entry_rejects_out_of_range_values(client, override):
     response = client.post("/api/fuel-entries", json=payload | override)
     assert response.status_code == 422
     assert client.get("/api/fuel-entries").json() == []
+
+
+def test_same_day_fill_ups_are_ordered_by_mileage(client):
+    # Logged out of order on purpose: the later fill-up of the day first.
+    for mileage_km in (10300, 10000, 10100):
+        response = client.post(
+            "/api/fuel-entries",
+            json={
+                "date": "2026-08-22",
+                "mileage_km": mileage_km,
+                "liters": 20,
+                "price_per_liter": 1.5,
+            },
+        )
+        assert response.status_code == 201, response.text
+
+    entries = client.get("/api/fuel-entries").json()
+    assert [e["mileage_km"] for e in entries] == [10300, 10100, 10000]
