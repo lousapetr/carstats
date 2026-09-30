@@ -6,6 +6,7 @@ import { currencyApi } from '../../api/currency'
 import { Button } from '../../components/ui/Button'
 import { Field, inputClass } from '../../components/ui/Field'
 import { CURRENCIES, CURRENCY_CODES, CURRENCY_LABELS } from '../../lib/currencies'
+import { todayIso } from '../../lib/dates'
 
 const schema = z.object({
   date: z.string().min(1, 'Povinné pole'),
@@ -21,7 +22,7 @@ export type FuelFormValues = z.output<typeof schema>
 type FuelFormInput = z.input<typeof schema>
 
 const blankValues = (): DefaultValues<FuelFormInput> => ({
-  date: new Date().toISOString().slice(0, 10),
+  date: todayIso(),
   currency: 'CZK',
   full_tank: true,
 })
