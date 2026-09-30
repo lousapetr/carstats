@@ -32,15 +32,18 @@ function SingleSeriesLineChart({
 }) {
   const theme = useChartTheme()
   const tick = { fontSize: 11, fill: theme.tick }
+  // Positioned by index, not date: two fill-ups on the same day would share
+  // one category slot, and hovering the second would show the first.
+  const points = data.map((point, index) => ({ ...point, index }))
 
   return (
     <ChartFigure caption={caption}>
       <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+        <LineChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} vertical={false} />
           <XAxis
-            dataKey="date"
-            tickFormatter={formatShortDate}
+            dataKey="index"
+            tickFormatter={(index: number) => formatShortDate(points[index].date)}
             tick={tick}
             tickLine={false}
             axisLine={false}
@@ -55,12 +58,13 @@ function SingleSeriesLineChart({
             domain={['auto', 'auto']}
           />
           <Tooltip
-            content={({ active, label, payload }) => {
+            content={({ active, payload }) => {
               const value = payloadNumber(payload?.[0]?.value)
+              const date: unknown = payload?.[0]?.payload?.date
               return (
                 <ChartTooltip
                   active={active}
-                  title={typeof label === 'string' ? formatDate(label) : undefined}
+                  title={typeof date === 'string' ? formatDate(date) : undefined}
                   items={value !== null ? [{ value: formatValue(value) }] : []}
                 />
               )
