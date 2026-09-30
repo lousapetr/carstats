@@ -10,8 +10,8 @@ export function Field({
   children: ReactNode
 }) {
   return (
-    <label className="block">
-      <span className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+    <label className="flex flex-col">
+      <span className="mb-1 flex flex-1 items-end text-sm font-medium text-gray-700 dark:text-gray-300">
         {label}
       </span>
       {children}
