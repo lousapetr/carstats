@@ -28,24 +28,20 @@ export default defineConfig({
         description: 'Evidence tankování, servisu a nákladů na auto',
         lang: 'cs',
         theme_color: '#111827',
-        // Firefox on Android also fills the launcher icon's transparent
-        // background with this, so it matches the gray of the icon tile.
-        background_color: '#d1d5db',
+        background_color: '#111827',
         display: 'standalone',
-        // Firefox on Android uses start_url as its home-screen shortcut's ID,
-        // and Android launchers keep a shortcut's icon under that ID, so a
-        // reinstall with an unchanged start_url brings the old icon back.
-        // Bump icon= whenever the icon changes; id keeps the app's identity
-        // stable for browsers that key on it instead.
+        // Chrome identifies an installed app by id. Keep it fixed so a changed
+        // manifest updates the installed app instead of counting as a new one.
         id: '/',
-        start_url: '/?icon=4',
-        // PNGs only. Firefox on Android builds an adaptive launcher icon from
-        // any maskable entry, and Nova shows that as a blank gray square; with
-        // no maskable entry it pins a plain bitmap, which Nova draws. The
-        // maskable-icon-*.png files are still generated, just not listed.
+        start_url: '/',
         icons: [
+          // Transparent car, for where the icon is drawn as-is.
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          // Full-bleed gray tile with the car inside the safe zone; Chrome on
+          // Android crops it to the launcher's icon shape.
+          { src: 'maskable-icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
     }),

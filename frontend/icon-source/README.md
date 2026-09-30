@@ -5,8 +5,10 @@ Two SVGs ship: `../public/favicon.svg` (transparent, also used for the header
 logo and the apple-touch-icon) and `favicon-maskable.svg` (full-bleed on grey,
 for Android's adaptive icons). The four PNGs in `../public/` are rendered from
 those two. All of them are generated -- edit the sources here, not the output.
-The manifest lists only the `pwa-*.png` pair: Firefox + Nova Launcher show a
-maskable entry as a blank square (see the comment in `../vite.config.ts`).
+
+The manifest is tuned for Chrome, which is how the app is installed on
+Android. Firefox + Nova Launcher could not be made to show it: a maskable entry
+pins as a blank square there.
 
 Everything needs only Python 3 and ImageMagick (`magick`).
 
@@ -16,8 +18,6 @@ Everything needs only Python 3 and ImageMagick (`magick`).
 
 Writes both SVGs and re-renders `pwa-*.png` and `maskable-icon-*.png` at 192
 and 512. Run this after any change here, then commit the output alongside it.
-Also bump `icon=` in `start_url` in `../vite.config.ts`, or Android home
-screens keep showing the previous icon after a reinstall.
 
 ## The car
 
