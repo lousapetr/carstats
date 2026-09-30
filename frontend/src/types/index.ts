@@ -121,24 +121,6 @@ export type TimelineItem =
       description: string | null
     }
 
-export interface DashboardSummary {
-  car: CarProfile
-  total_fuel_cost: number
-  total_fuel_liters: number
-  total_fuel_entries: number
-  total_maintenance_cost: number
-  total_maintenance_entries: number
-  total_cost: number
-  total_cost_this_year: number
-  total_cost_last_year: number
-  cost_per_km: number | null
-  avg_consumption_l_per_100km: number | null
-  avg_consumption_l_per_100km_this_year: number | null
-  avg_consumption_l_per_100km_last_year: number | null
-  upcoming_reminders: Reminder[]
-  recent_activity: TimelineItem[]
-}
-
 /** `all`, `ytd`, `12m` or `year:YYYY` — see backend/app/dashboard/periods.py. */
 export type Period = 'all' | 'ytd' | '12m' | `year:${number}`
 
