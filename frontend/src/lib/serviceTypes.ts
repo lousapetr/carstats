@@ -29,8 +29,8 @@ export const SERVICE_TYPES = SERVICE_TYPE_VALUES.map((value) => ({
     a.label.localeCompare(b.label, 'cs'),
 )
 
-/** The type's label, with the free-text description appended for `other`. */
+/** The type's label, with the free-text description appended when present. */
 export function serviceEntryLabel(type: ServiceType, description: string | null): string {
   const label = SERVICE_TYPE_LABELS[type]
-  return type === 'other' && description ? `${label} - ${description}` : label
+  return description ? `${label} - ${description}` : label
 }
