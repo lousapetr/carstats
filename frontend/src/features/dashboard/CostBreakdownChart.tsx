@@ -17,7 +17,7 @@ import { ActivityList } from './ActivityList'
 import { ChartFigure } from './ChartFigure'
 import { payloadNumber, useChartTheme } from './chartTheme'
 
-const CATEGORY_LABELS: Record<string, string> = { fuel: 'Palivo', ...SERVICE_TYPE_LABELS }
+const CATEGORY_LABELS: Record<string, string> = { fuel: 'Tankování', ...SERVICE_TYPE_LABELS }
 
 const BAR_HEIGHT = 36
 // Room right of the longest bar for its value, which must never wrap.

@@ -165,7 +165,7 @@ export function DashboardPage() {
                 }
               />
               <StatTile
-                label="Palivo"
+                label="Tankování"
                 value={formatCzk(totals.fuel)}
                 sub={`${formatLiters(totals.fuel_liters)} · ${pluralize(totals.fuel_entries, 'tankování', 'tankování', 'tankování')}`}
               />

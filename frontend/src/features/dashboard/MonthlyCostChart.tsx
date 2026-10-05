@@ -14,7 +14,7 @@ import { ChartFigure } from './ChartFigure'
 import { ChartTooltip } from './ChartTooltip'
 import { payloadNumber, useChartTheme } from './chartTheme'
 
-const SERIES_LABELS: Record<string, string> = { fuel: 'Palivo', service: 'Servis' }
+const SERIES_LABELS: Record<string, string> = { fuel: 'Tankování', service: 'Servis' }
 
 const MONTHS = [
   'leden',
@@ -55,9 +55,8 @@ export function MonthlyCostChart({
 
   return (
     <ChartFigure
-      caption={`Skládaný sloupcový graf nákladů na palivo a servis v Kč po ${
-        granularity === 'year' ? 'letech' : 'měsících'
-      }.`}
+      caption={`Skládaný sloupcový graf nákladů na tankování a servis v Kč po ${granularity === 'year' ? 'letech' : 'měsících'
+        }.`}
     >
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
@@ -87,12 +86,12 @@ export function MonthlyCostChart({
                   const value = payloadNumber(entry.value)
                   return value !== null
                     ? [
-                        {
-                          label: SERIES_LABELS[String(entry.dataKey)] ?? String(entry.name),
-                          value: formatCzk(value),
-                          color: entry.color,
-                        },
-                      ]
+                      {
+                        label: SERIES_LABELS[String(entry.dataKey)] ?? String(entry.name),
+                        value: formatCzk(value),
+                        color: entry.color,
+                      },
+                    ]
                     : []
                 })}
               />
