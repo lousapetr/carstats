@@ -212,14 +212,15 @@ apply_updates = yes
 reboot = when-changed
 
 [emitters]
-emit_via = stdio
+emit_via = stdio,motd
 ```
 
 `security` keeps each transaction small, which matters on 1 GB. `reboot` does
 nothing without `apply_updates = yes`, and `when-changed` beats `when-needed`
 here because the latter's hint list is short (kernel, `glibc`, `systemd`,
 `dbus`, `linux-firmware`) and misses `openssl`, leaving `sshd`/`dockerd` on the
-old library.
+old library. `motd` writes the last run's summary to `/etc/motd`, shown at SSH
+login (empty when nothing was found). Leave `email` out — there's no MTA.
 
 Move the run clear of the backup — `sudo systemctl edit dnf-automatic.timer`:
 
@@ -286,13 +287,23 @@ cd ~/carstats && docker compose pull && docker compose up -d
 docker image prune -f
 ```
 
-**Verifying:**
+**Verifying:** the journal only survives reboots once `/var/log/journal` exists:
+
+```bash
+sudo mkdir -p /var/log/journal && sudo systemctl restart systemd-journald
+```
 
 ```bash
 systemctl list-timers dnf-automatic.timer
-journalctl -u dnf-automatic --since '2 days ago'
-uname -r                      # matches the newest installed kernel
-sudo dnf needs-restarting -r  # exits 1 if a reboot is still pending
+journalctl -u dnf-automatic --since '7 days ago'
+journalctl -u dnf-automatic -b -1     # run before the last reboot
+sudo dnf history list | head          # what each night changed
+sudo dnf history info <ID>            # details, incl. scriptlet output for EE
+sudo tail /var/log/dnf.log /var/log/dnf.rpm.log
+last -x reboot | head                 # reboots should follow upgrade nights
+uname -r                              # matches the newest installed kernel
+sudo dnf needs-restarting -r          # exits 1 if a reboot is still pending
+sudo dnf-automatic --no-installupdates  # dry run: downloads, installs nothing
 ```
 
 ### Exchange rates
