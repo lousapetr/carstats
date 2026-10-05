@@ -8,7 +8,7 @@ body {
   margin: 0;
 }
 
-/* Recharts makes every chart surface focusable, so a tap draws the browser's focus ring around it. */
-.recharts-surface:focus {
+/* Recharts makes its surface and inner layers focusable, so a tap draws the browser's focus ring around them. */
+.recharts-wrapper :focus {
   outline: none;
 }
