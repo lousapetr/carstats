@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Button } from '../../components/ui/Button'
-import { Field, inputClass } from '../../components/ui/Field'
+import { dateInputClass, Field, inputClass } from '../../components/ui/Field'
 
 const emptyToUndefined = (val: unknown) => (val === '' ? undefined : val)
 
@@ -62,7 +62,7 @@ export function ReminderForm({
         </Field>
       </div>
       <Field label="Termín (volitelné)" error={errors.due_date?.message}>
-        <input type="date" className={inputClass} {...register('due_date')} />
+        <input type="date" className={dateInputClass} {...register('due_date')} />
       </Field>
       <Field label="Najeto km (volitelné)" error={errors.due_mileage_km?.message}>
         <input type="number" step="1" className={inputClass} {...register('due_mileage_km')} />

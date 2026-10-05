@@ -4,7 +4,7 @@ import { type DefaultValues, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { currencyApi } from '../../api/currency'
 import { Button } from '../../components/ui/Button'
-import { Field, inputClass } from '../../components/ui/Field'
+import { dateInputClass, Field, inputClass } from '../../components/ui/Field'
 import { CURRENCIES, CURRENCY_CODES, CURRENCY_LABELS } from '../../lib/currencies'
 import { todayIso } from '../../lib/dates'
 
@@ -73,7 +73,7 @@ export function FuelForm({
       className="grid grid-cols-2 gap-3"
     >
       <Field label="Datum" error={errors.date?.message}>
-        <input type="date" className={inputClass} {...register('date')} />
+        <input type="date" className={dateInputClass} {...register('date')} />
       </Field>
       <Field label="Stav tachometru (km)" error={errors.mileage_km?.message}>
         <input type="number" step="1" className={inputClass} {...register('mileage_km')} />

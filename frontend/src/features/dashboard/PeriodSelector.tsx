@@ -1,6 +1,6 @@
 import { type FormEvent, type KeyboardEvent, useRef, useState } from 'react'
 import { Button } from '../../components/ui/Button'
-import { Field, inputClass } from '../../components/ui/Field'
+import { dateInputClass, Field } from '../../components/ui/Field'
 import { todayIso } from '../../lib/dates'
 import { periodLabel, rangeBounds, rangePeriod, yearPeriod } from '../../lib/periods'
 import type { Period } from '../../types'
@@ -128,7 +128,7 @@ function CustomRangeForm({
       <Field label="Od">
         <input
           type="date"
-          className={inputClass}
+          className={dateInputClass}
           value={from}
           max={effectiveTo}
           onChange={(e) => setFrom(e.target.value)}
@@ -137,7 +137,7 @@ function CustomRangeForm({
       <Field label="Do" error={reversed ? 'Konec je před začátkem' : undefined}>
         <input
           type="date"
-          className={inputClass}
+          className={dateInputClass}
           value={to}
           min={from || undefined}
           onChange={(e) => setTo(e.target.value)}
