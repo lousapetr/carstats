@@ -122,10 +122,18 @@ export interface ReminderInput {
 }
 
 export type TimelineItem =
-  | { date: string; kind: 'fuel'; cost: number; liters: number; price_per_liter: number }
+  | {
+      date: string
+      kind: 'fuel'
+      mileage_km: number
+      cost: number
+      liters: number
+      price_per_liter: number
+    }
   | {
       date: string
       kind: 'service'
+      mileage_km: number
       cost: number
       service_type: ServiceType
       description: string | null
@@ -177,7 +185,7 @@ export interface Dashboard {
   monthly_costs: MonthlyCostPoint[]
   monthly_granularity: 'month' | 'year'
   upcoming_reminders: Reminder[]
-  recent_activity: TimelineItem[]
+  activity: TimelineItem[]
 }
 
 export interface FuelTrendPoint {

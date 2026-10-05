@@ -23,7 +23,6 @@ from app.fuel.service import FullToFullInterval, full_to_full_intervals, list_en
 from app.maintenance.models import ServiceEntry
 from app.reminders.service import list_active_reminders
 
-RECENT_ACTIVITY_LIMIT = 10
 # Past this many months, monthly_costs switches to yearly buckets so a long
 # history doesn't hand a phone screen a hundred columns.
 MAX_MONTHLY_BUCKETS = 36
@@ -156,33 +155,28 @@ def _cost_breakdown(fuel: Sequence[FuelEntry], service: Sequence[ServiceEntry]) 
 def _timeline(fuel: Sequence[FuelEntry], service: Sequence[ServiceEntry]) -> list[TimelineItem]:
     # Newest first by odometer rather than date, which can't order two
     # entries logged on the same day.
-    by_mileage: list[tuple[float, TimelineItem]] = [
-        (
-            e.mileage_km,
-            FuelTimelineItem(
-                date=e.date,
-                cost=round(_fuel_cost_czk(e), 2),
-                liters=e.liters,
-                price_per_liter=round(e.price_per_liter * e.exchange_rate, 3),
-            ),
+    timeline: list[TimelineItem] = [
+        FuelTimelineItem(
+            date=e.date,
+            mileage_km=e.mileage_km,
+            cost=round(_fuel_cost_czk(e), 2),
+            liters=e.liters,
+            price_per_liter=round(e.price_per_liter * e.exchange_rate, 3),
         )
         for e in fuel
     ]
-    by_mileage += [
-        (
-            e.mileage_km,
-            ServiceTimelineItem(
-                date=e.date,
-                cost=round(_service_cost_czk(e), 2),
-                service_type=e.type,
-                description=e.description,
-            ),
+    timeline += [
+        ServiceTimelineItem(
+            date=e.date,
+            mileage_km=e.mileage_km,
+            cost=round(_service_cost_czk(e), 2),
+            service_type=e.type,
+            description=e.description,
         )
         for e in service
     ]
-    by_mileage.sort(key=lambda pair: pair[0], reverse=True)
-    timeline = [item for _, item in by_mileage]
-    return timeline[:RECENT_ACTIVITY_LIMIT]
+    timeline.sort(key=lambda item: item.mileage_km, reverse=True)
+    return timeline
 
 
 def get_dashboard(db: Session, period: str, today: date | None = None) -> Dashboard:
@@ -275,5 +269,5 @@ def get_dashboard(db: Session, period: str, today: date | None = None) -> Dashbo
         monthly_costs=monthly_costs,
         monthly_granularity=granularity,
         upcoming_reminders=list_active_reminders(db),
-        recent_activity=_timeline(fuel, service),
+        activity=_timeline(fuel, service),
     )

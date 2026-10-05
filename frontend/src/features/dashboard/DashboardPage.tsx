@@ -7,7 +7,6 @@ import { ErrorState } from '../../components/ui/ErrorState'
 import { LoadingState } from '../../components/ui/LoadingState'
 import { StatTile } from '../../components/ui/StatTile'
 import { StatusBadge } from '../../components/ui/StatusBadge'
-import { formatDate } from '../../lib/dates'
 import {
   formatConsumption,
   formatCostPerKm,
@@ -24,20 +23,14 @@ import {
   periodLabel,
   previousPeriodLabel,
 } from '../../lib/periods'
-import { serviceEntryLabel } from '../../lib/serviceTypes'
-import type { Period, TimelineItem } from '../../types'
+import type { Period } from '../../types'
+import { ActivityList } from './ActivityList'
 import { CostBreakdownChart } from './CostBreakdownChart'
 import { Delta } from './Delta'
 import { FirstRunCard } from './FirstRunCard'
 import { ConsumptionTrendChart, PricePerLiterChart } from './FuelTrendChart'
 import { MonthlyCostChart } from './MonthlyCostChart'
 import { PeriodSelector } from './PeriodSelector'
-
-function timelineLabel(item: TimelineItem) {
-  return item.kind === 'fuel'
-    ? `Tankování (${formatLiters(item.liters)} · ${formatPricePerLiter(item.price_per_liter)})`
-    : serviceEntryLabel(item.service_type, item.description)
-}
 
 function ChartCard({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -229,30 +222,14 @@ export function DashboardPage() {
             )}
 
             <ChartCard title="Náklady podle kategorie">
-              <CostBreakdownChart data={dashboard.cost_breakdown} />
+              <CostBreakdownChart data={dashboard.cost_breakdown} activity={dashboard.activity} />
             </ChartCard>
 
             <ChartCard title="Poslední aktivita">
-              <div className="flex flex-col">
-                {dashboard.recent_activity.map((item, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-center justify-between rounded-md px-2 py-1.5 text-sm ${
-                      i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-900' : ''
-                    }`}
-                  >
-                    <span className="text-gray-700 dark:text-gray-300">
-                      {formatDate(item.date)} · {timelineLabel(item)}
-                    </span>
-                    <span className="text-gray-500 dark:text-gray-400">{formatCzk(item.cost)}</span>
-                  </div>
-                ))}
-                {dashboard.recent_activity.length === 0 && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    V tomto období žádná aktivita.
-                  </p>
-                )}
-              </div>
+              <ActivityList
+                items={dashboard.activity}
+                empty="V tomto období žádná aktivita."
+              />
             </ChartCard>
           </div>
         </>

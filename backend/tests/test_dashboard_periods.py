@@ -124,7 +124,7 @@ def test_all_reproduces_the_summary_figures(client):
         "maintenance_by_type": {"oil_change": 80},
     }
     assert [p["date"] for p in dashboard["fuel_trend"]] == ["2026-08-01", "2026-08-05"]
-    assert len(dashboard["recent_activity"]) == 3
+    assert len(dashboard["activity"]) == 3
     assert dashboard["available_years"] == [2026]
 
 
@@ -148,7 +148,7 @@ def test_costs_filter_by_entry_date(client, fixed_today):
     assert ytd["totals"]["total"] == 30
     assert ytd["previous_totals"]["total"] == 140
     assert ytd["total_cost_delta_pct"] == round((30 - 140) / 140 * 100, 1)
-    assert [a["date"] for a in ytd["recent_activity"]] == ["2026-06-01"]
+    assert [a["date"] for a in ytd["activity"]] == ["2026-06-01"]
 
     year_2025 = _dashboard(client, "year:2025")
     assert year_2025["totals"]["total"] == 140
@@ -326,7 +326,7 @@ def test_activity_shows_each_fill_ups_price_per_liter_in_czk(client):
     assert response.status_code == 201, response.text
     exchange_rate = response.json()["exchange_rate"]
 
-    activity = _dashboard(client)["recent_activity"]
+    activity = _dashboard(client)["activity"]
     assert activity[0]["price_per_liter"] == round(1.5 * exchange_rate, 3)
 
 
@@ -337,5 +337,12 @@ def test_same_day_entries_are_ordered_by_mileage(client):
     _service(client, "2026-08-22", 10100, 50)
 
     dashboard = _dashboard(client)
-    assert [a["cost"] for a in dashboard["recent_activity"]] == [30, 50, 20]
+    assert [a["cost"] for a in dashboard["activity"]] == [30, 50, 20]
     assert [p["liters"] for p in dashboard["fuel_trend"]] == [20, 30]
+
+
+def test_activity_lists_every_entry_in_the_window(client):
+    for i in range(12):
+        _fuel(client, "2026-08-01", 10000 + i * 100, 10)
+
+    assert len(_dashboard(client)["activity"]) == 12

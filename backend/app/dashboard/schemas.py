@@ -11,6 +11,7 @@ from app.reminders.models import ReminderRead
 class FuelTimelineItem(BaseModel):
     date: date
     kind: Literal["fuel"] = "fuel"
+    mileage_km: float
     cost: float
     liters: float
     price_per_liter: float  # CZK-converted, like cost
@@ -19,6 +20,7 @@ class FuelTimelineItem(BaseModel):
 class ServiceTimelineItem(BaseModel):
     date: date
     kind: Literal["service"] = "service"
+    mileage_km: float
     cost: float
     service_type: ServiceType
     description: str | None
@@ -111,4 +113,5 @@ class Dashboard(BaseModel):
     monthly_costs: list[MonthlyCostPoint]
     monthly_granularity: Literal["month", "year"]
     upcoming_reminders: list[ReminderRead]
-    recent_activity: list[TimelineItem]
+    # Every entry in the window, newest first.
+    activity: list[TimelineItem]
