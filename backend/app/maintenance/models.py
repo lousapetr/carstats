@@ -13,6 +13,11 @@ class ServiceType(StrEnum):
     tires = "tires"
     engine_service = "engine_service"
     additives = "additives"
+    insurance = "insurance"
+    vignette = "vignette"
+    road_trip = "road_trip"
+    inspection = "inspection"
+    fines = "fines"
     other = "other"
 
 
