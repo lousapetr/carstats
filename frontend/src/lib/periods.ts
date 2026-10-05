@@ -30,7 +30,7 @@ export function rangeBounds(period: Period): { from: string; to: string } | null
 }
 
 export function periodLabel(period: Period): string {
-  if (period === 'all') return 'Celá historie'
+  if (period === 'all') return 'Vše'
   if (period === 'ytd') return 'Letos'
   if (period === '12m') return 'Posledních 12 měsíců'
   const range = rangeBounds(period)

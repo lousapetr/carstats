@@ -8,7 +8,7 @@ import type { Period } from '../../types'
 const CUSTOM = 'custom'
 type Option = Period | typeof CUSTOM
 
-const SHORT_LABELS: Partial<Record<Option, string>> = { '12m': '12 m', [CUSTOM]: 'Vlastní…' }
+const SHORT_LABELS: Partial<Record<Option, string>> = { '12m': '12m', [CUSTOM]: 'Vlastní' }
 
 /** Scrollable pills acting as one radio group: Tab lands on the selected
  *  pill, arrow keys move the selection. "Vlastní…" only opens the date form;
@@ -79,11 +79,10 @@ export function PeriodSelector({
               tabIndex={checked ? 0 : -1}
               onClick={() => choose(option)}
               onKeyDown={(event) => onKeyDown(event, i)}
-              className={`shrink-0 rounded-full border px-3 py-1 text-sm whitespace-nowrap ${
-                checked
+              className={`shrink-0 rounded-full border px-3 py-1 text-sm whitespace-nowrap ${checked
                   ? 'border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
                   : 'border-gray-300 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300'
-              }`}
+                }`}
             >
               {SHORT_LABELS[option] ?? label}
             </button>
