@@ -142,9 +142,13 @@ Drive.
    an hour after this slot, so if you move it, move that too.
 
 Backups land in the `carstats-backups` folder on Drive as
-`carstats-backup-<timestamp>.tar.gz`, containing the SQLite database and the
-`uploads/` directory. Backups older than 30 days are pruned automatically
-(`REMOTE_RETENTION_DAYS` env var to change).
+`carstats-backup-<timestamp>-<hash>.tar.gz`, containing the SQLite database and
+the `uploads/` directory. `<hash>` fingerprints the data, and a run whose hash
+matches the newest archive uploads nothing. After each new upload, backups
+older than 30 days are pruned; a skipped run prunes nothing, so the newest
+backup is kept however old it gets. `RCLONE_REMOTE` (default
+`gdrive:carstats-backups`) and `REMOTE_RETENTION_DAYS` can be set in `.env` or
+the environment.
 
 ### Restoring
 

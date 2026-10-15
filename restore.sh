@@ -7,10 +7,18 @@
 #   ./restore.sh --archive carstats-backup-20260922-141328.tar.gz
 #   ./restore.sh --target prod    # latest backup -> the live container (run on the VM)
 #
-# Needs an rclone remote named "gdrive" (see README "Backups").
+# Needs an rclone remote named "gdrive" (see README "Backups"), or another one
+# set as RCLONE_REMOTE in the environment or .env.
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# Same lookup as backup.sh: environment, then .env, then the default.
+env_value() {
+    [[ -f .env ]] || return 0
+    sed -n "s/^$1=//p" .env | tail -1 | sed -E "s/^([\"'])(.*)\1\$/\2/"
+}
+
+RCLONE_REMOTE="${RCLONE_REMOTE:-$(env_value RCLONE_REMOTE)}"
 RCLONE_REMOTE="${RCLONE_REMOTE:-gdrive:carstats-backups}"
 
 target="dev"
