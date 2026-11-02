@@ -4,5 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 git pull
-docker compose up -d --build
+docker compose pull --ignore-buildable
+docker compose build --pull
+docker compose up -d
 docker compose ps
