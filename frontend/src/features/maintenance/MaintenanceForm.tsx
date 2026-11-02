@@ -27,10 +27,15 @@ const schema = z.object({
 export type MaintenanceFormValues = z.output<typeof schema>
 type MaintenanceFormInput = z.input<typeof schema>
 
+// Every field explicit: reset() leaves a field it gets no value for showing its old input.
 const blankValues = (): DefaultValues<MaintenanceFormInput> => ({
   date: todayIso(),
+  mileage_km: '',
   type: 'oil_change',
+  description: '',
+  cost: '',
   currency: 'CZK',
+  notes: '',
 })
 
 export function MaintenanceForm({

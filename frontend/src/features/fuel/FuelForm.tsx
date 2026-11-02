@@ -21,10 +21,15 @@ const schema = z.object({
 export type FuelFormValues = z.output<typeof schema>
 type FuelFormInput = z.input<typeof schema>
 
+// Every field explicit: reset() leaves a field it gets no value for showing its old input.
 const blankValues = (): DefaultValues<FuelFormInput> => ({
   date: todayIso(),
+  mileage_km: '',
+  liters: '',
+  price_per_liter: '',
   currency: 'CZK',
   full_tank: true,
+  notes: '',
 })
 
 export function FuelForm({
