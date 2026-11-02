@@ -51,7 +51,7 @@ export function MaintenanceForm({
     handleSubmit,
     reset,
     watch,
-    formState: { errors },
+    formState: { errors, isSubmitting: isFormSubmitting },
   } = useForm<MaintenanceFormInput, unknown, MaintenanceFormValues>({
     resolver: zodResolver(schema),
     defaultValues: defaultValues ?? blankValues(),
@@ -60,6 +60,9 @@ export function MaintenanceForm({
   const currency = watch('currency')
   const { data: rates } = useQuery({ queryKey: ['currency-rates'], queryFn: currencyApi.list })
   const currentRate = rates?.find((r) => r.currency === currency)?.rate_to_czk
+
+  // The form is busy from submit through validation, the request and any confirm dialog.
+  const busy = isSubmitting || isFormSubmitting
 
   return (
     <form
@@ -125,8 +128,8 @@ export function MaintenanceForm({
         </Field>
       </div>
       <div className="col-span-2 flex gap-2">
-        <Button type="submit" disabled={isSubmitting} className="flex-1">
-          {isSubmitting ? 'Ukládám…' : (submitLabel ?? 'Zapsat servis')}
+        <Button type="submit" disabled={busy} className="flex-1">
+          {busy ? 'Ukládám…' : (submitLabel ?? 'Zapsat servis')}
         </Button>
         {onCancel && (
           <Button type="button" variant="secondary" onClick={onCancel}>

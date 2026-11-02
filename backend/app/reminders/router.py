@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from sqlmodel import Session
 
 from app.core.database import DbSession
+from app.core.duplicates import DuplicateEntryError
 from app.core.security import CurrentUser
 from app.reminders import service
 from app.reminders.models import Reminder, ReminderCreate, ReminderRead
@@ -15,8 +16,13 @@ def list_reminders(user: CurrentUser, db: DbSession) -> list[ReminderRead]:
 
 
 @router.post("", response_model=ReminderRead, status_code=status.HTTP_201_CREATED)
-def create_reminder(data: ReminderCreate, user: CurrentUser, db: DbSession) -> ReminderRead:
-    return service.create_reminder(db, data)
+def create_reminder(
+    data: ReminderCreate, user: CurrentUser, db: DbSession, force: bool = False
+) -> ReminderRead:
+    try:
+        return service.create_reminder(db, data, allow_duplicate=force)
+    except DuplicateEntryError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 def _get_or_404(db: Session, reminder_id: int) -> Reminder:
@@ -28,10 +34,13 @@ def _get_or_404(db: Session, reminder_id: int) -> Reminder:
 
 @router.put("/{reminder_id}", response_model=ReminderRead)
 def update_reminder(
-    reminder_id: int, data: ReminderCreate, user: CurrentUser, db: DbSession
+    reminder_id: int, data: ReminderCreate, user: CurrentUser, db: DbSession, force: bool = False
 ) -> ReminderRead:
     reminder = _get_or_404(db, reminder_id)
-    return service.update_reminder(db, reminder, data)
+    try:
+        return service.update_reminder(db, reminder, data, allow_duplicate=force)
+    except DuplicateEntryError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.post("/{reminder_id}/complete", response_model=ReminderRead)

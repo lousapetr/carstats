@@ -9,6 +9,7 @@ import { confirmDialog } from '../../lib/confirmBus'
 import { formatDate } from '../../lib/dates'
 import { formatCzk, formatKm, formatMoney } from '../../lib/format'
 import { SERVICE_TYPE_LABELS } from '../../lib/serviceTypes'
+import { submitConfirmingDuplicate } from '../../lib/submitConfirmingDuplicate'
 import type { ServiceEntry, ServiceEntryInput } from '../../types'
 import { AttachmentUploader } from './AttachmentUploader'
 import { MaintenanceForm } from './MaintenanceForm'
@@ -41,17 +42,28 @@ export function MaintenanceLogPage() {
   }
 
   const createMutation = useMutation({
-    mutationFn: (data: ServiceEntryInput) => maintenanceApi.create(data),
+    mutationFn: ({ data, force }: { data: ServiceEntryInput; force: boolean }) =>
+      maintenanceApi.create(data, force),
     onSuccess: invalidate,
+    meta: { successMessage: 'Servisní záznam uložen.', confirmsDuplicate: true },
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: ServiceEntryInput }) =>
-      maintenanceApi.update(id, data),
+    mutationFn: ({
+      id,
+      data,
+      force,
+    }: {
+      id: number
+      data: ServiceEntryInput
+      force: boolean
+    }) =>
+      maintenanceApi.update(id, data, force),
     onSuccess: () => {
       invalidate()
       setEditingEntry(null)
     },
+    meta: { successMessage: 'Změny uloženy.', confirmsDuplicate: true },
   })
 
   const deleteMutation = useMutation({
@@ -70,9 +82,11 @@ export function MaintenanceLogPage() {
           submitLabel={editingEntry ? 'Uložit změny' : undefined}
           onCancel={editingEntry ? () => setEditingEntry(null) : undefined}
           onSubmit={(values) =>
-            editingEntry
-              ? updateMutation.mutateAsync({ id: editingEntry.id, data: values })
-              : createMutation.mutateAsync(values)
+            submitConfirmingDuplicate((force) =>
+              editingEntry
+                ? updateMutation.mutateAsync({ id: editingEntry.id, data: values, force })
+                : createMutation.mutateAsync({ data: values, force }),
+            )
           }
           isSubmitting={createMutation.isPending || updateMutation.isPending}
         />

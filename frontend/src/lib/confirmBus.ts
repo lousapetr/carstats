@@ -1,4 +1,10 @@
-export interface ConfirmRequest {
+export interface ConfirmOptions {
+  /** Defaults to the delete wording ("Smazat"). */
+  confirmLabel?: string
+  variant?: 'danger' | 'primary'
+}
+
+export interface ConfirmRequest extends ConfirmOptions {
   message: string
   resolve: (value: boolean) => void
 }
@@ -17,8 +23,8 @@ export function subscribeConfirm(listener: ConfirmListener): () => void {
  *  rather than leaving the caller's promise dangling forever. Only the first
  *  host is asked, so a second one can't swallow the answer.
  */
-export function confirmDialog(message: string): Promise<boolean> {
+export function confirmDialog(message: string, options: ConfirmOptions = {}): Promise<boolean> {
   const [listener] = listeners
   if (!listener) return Promise.resolve(false)
-  return new Promise((resolve) => listener({ message, resolve }))
+  return new Promise((resolve) => listener({ message, resolve, ...options }))
 }

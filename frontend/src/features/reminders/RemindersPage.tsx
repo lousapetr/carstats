@@ -9,6 +9,7 @@ import { StatusBadge } from '../../components/ui/StatusBadge'
 import { confirmDialog } from '../../lib/confirmBus'
 import { formatDate } from '../../lib/dates'
 import { formatKm } from '../../lib/format'
+import { submitConfirmingDuplicate } from '../../lib/submitConfirmingDuplicate'
 import type { Reminder, ReminderInput } from '../../types'
 import { ReminderForm } from './ReminderForm'
 
@@ -38,17 +39,28 @@ export function RemindersPage() {
   }
 
   const createMutation = useMutation({
-    mutationFn: (data: ReminderInput) => remindersApi.create(data),
+    mutationFn: ({ data, force }: { data: ReminderInput; force: boolean }) =>
+      remindersApi.create(data, force),
     onSuccess: invalidate,
+    meta: { successMessage: 'Připomínka uložena.', confirmsDuplicate: true },
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: ReminderInput }) =>
-      remindersApi.update(id, data),
+    mutationFn: ({
+      id,
+      data,
+      force,
+    }: {
+      id: number
+      data: ReminderInput
+      force: boolean
+    }) =>
+      remindersApi.update(id, data, force),
     onSuccess: () => {
       invalidate()
       setEditingReminder(null)
     },
+    meta: { successMessage: 'Změny uloženy.', confirmsDuplicate: true },
   })
 
   const completeMutation = useMutation({
@@ -72,9 +84,11 @@ export function RemindersPage() {
           submitLabel={editingReminder ? 'Uložit změny' : undefined}
           onCancel={editingReminder ? () => setEditingReminder(null) : undefined}
           onSubmit={(values) =>
-            editingReminder
-              ? updateMutation.mutateAsync({ id: editingReminder.id, data: values })
-              : createMutation.mutateAsync(values)
+            submitConfirmingDuplicate((force) =>
+              editingReminder
+                ? updateMutation.mutateAsync({ id: editingReminder.id, data: values, force })
+                : createMutation.mutateAsync({ data: values, force }),
+            )
           }
           isSubmitting={createMutation.isPending || updateMutation.isPending}
         />

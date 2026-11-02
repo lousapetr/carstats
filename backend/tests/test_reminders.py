@@ -161,3 +161,40 @@ def test_completing_recurring_reminder_always_moves_due_date_forward(client):
         assert due > date.today()
         assert completed["status"] != "overdue"
         previous_due = due
+
+
+def test_duplicate_active_reminder_is_rejected(client):
+    body = {"title": "Oil change", "due_date": "2027-01-01", "due_mileage_km": 20000}
+    client.post("/api/reminders", json=body)
+    response = client.post("/api/reminders", json={**body, "title": " oil CHANGE "})
+    assert response.status_code == 409
+    assert "se stejným termínem" in response.json()["detail"]
+
+
+def test_duplicate_reminder_without_due_fields_is_rejected(client):
+    client.post("/api/reminders", json={"title": "Wash"})
+    assert client.post("/api/reminders", json={"title": "wash"}).status_code == 409
+
+
+def test_reminder_with_different_due_date_is_not_duplicate(client):
+    client.post("/api/reminders", json={"title": "Oil change", "due_date": "2027-01-01"})
+    response = client.post("/api/reminders", json={"title": "Oil change", "due_date": "2028-01-01"})
+    assert response.status_code == 201
+
+
+def test_completed_reminder_does_not_block_a_new_one(client):
+    body = {"title": "Highway ticket", "due_date": "2027-01-01"}
+    first = client.post("/api/reminders", json=body).json()
+    client.post(f"/api/reminders/{first['id']}/complete")
+    assert client.post("/api/reminders", json=body).status_code == 201
+
+
+def test_duplicate_reminder_saved_with_force(client):
+    client.post("/api/reminders", json={"title": "Wash"})
+    assert client.post("/api/reminders?force=true", json={"title": "Wash"}).status_code == 201
+
+
+def test_update_reminder_ignores_itself(client):
+    reminder = client.post("/api/reminders", json={"title": "Wash"}).json()
+    response = client.put(f"/api/reminders/{reminder['id']}", json={"title": "Wash", "notes": "x"})
+    assert response.status_code == 200

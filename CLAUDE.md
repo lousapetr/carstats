@@ -92,6 +92,18 @@ leaves them in arbitrary order.
 `CarProfile` itself is a lazily-created singleton row (`get_or_create_profile`), not a
 multi-vehicle table.
 
+### Duplicate-entry guard
+
+Create and update of fuel, service and reminder entries refuse an exact repeat (`core/duplicates.py`):
+fuel = same `date` + `mileage_km`; service = same date + km + `type` + description (trimmed,
+whitespace-collapsed, case-insensitive; `None` == `""`); reminder = an *active* one with the same title
+(normalized) + `due_date` + `due_mileage_km` (`None` == `None`; completed ones never block). On update
+the entry itself is excluded. A hit raises `DuplicateEntryError`, which the routers map to **409** with
+a Czech `detail`; `?force=true` on POST/PUT (`allow_duplicate` in the service) bypasses it.
+`DuplicateEntryError` is deliberately not a `ValueError`, which routers map to 400 — the frontend needs
+a distinct status to offer "save anyway". The check runs *before* `validate_mileage_consistency`, so a
+repeat gets the clearer message.
+
 ### Currency: snapshot-at-entry-time, not live conversion
 
 `CurrencyRate` holds one `rate_to_czk` per non-CZK currency (CZK is always 1.0, not
@@ -201,6 +213,15 @@ Czech line only when the response carried no `detail` at all — a specific Engl
 is preferred over a generic Czech one. Backend 400 `detail`s are user-facing and must be
 written in Czech (see `car/service.py`, `attachments/storage.py`); a 422's `detail` is a
 list of pydantic errors, which `api/client.ts` flattens into one message.
+
+The same `MutationCache` also toasts successes: a mutation opts in with
+`meta: { successMessage: '…' }` (typed in `src/types/react-query.d.ts`) — don't call
+`emitSuccessToast` from per-mutation `onSuccess`. The create/update mutations of fuel, service and
+reminders also set `meta.confirmsDuplicate`, which makes the cache skip the toast for a 409; their pages
+wrap the submit in `lib/submitConfirmingDuplicate.ts`, which on a 409 asks "… Přesto uložit?" via
+`confirmDialog` and resubmits with `force` (the mutation variables carry `force`; the API modules append
+`?force=true`). A cancel rethrows, so the form keeps its input. The forms also treat react-hook-form's
+`isSubmitting` as busy, which covers the async-validation window before the mutation's `isPending`.
 
 Failed *reads* don't toast: each page renders `components/ui/LoadingState` /
 `ErrorState` (with a retry button calling `refetch`) off the query's `isPending` /

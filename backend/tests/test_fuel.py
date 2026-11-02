@@ -232,3 +232,41 @@ def test_same_day_fill_ups_are_ordered_by_mileage(client):
 
     entries = client.get("/api/fuel-entries").json()
     assert [e["mileage_km"] for e in entries] == [10300, 10100, 10000]
+
+
+FUEL = {"date": "2026-08-01", "mileage_km": 10000, "liters": 40, "price_per_liter": 1.5}
+
+
+def test_duplicate_fuel_entry_is_rejected(client):
+    client.post("/api/fuel-entries", json=FUEL)
+    response = client.post("/api/fuel-entries", json=FUEL)
+    assert response.status_code == 409
+    assert "už je zapsané" in response.json()["detail"]
+    assert len(client.get("/api/fuel-entries").json()) == 1
+
+
+def test_fuel_entry_same_date_different_km_is_not_duplicate(client):
+    client.post("/api/fuel-entries", json=FUEL)
+    response = client.post("/api/fuel-entries", json={**FUEL, "mileage_km": 10100})
+    assert response.status_code == 201
+
+
+def test_duplicate_fuel_entry_saved_with_force(client):
+    client.post("/api/fuel-entries", json=FUEL)
+    response = client.post("/api/fuel-entries?force=true", json=FUEL)
+    assert response.status_code == 201
+    assert len(client.get("/api/fuel-entries").json()) == 2
+
+
+def test_update_fuel_entry_ignores_itself(client):
+    entry = client.post("/api/fuel-entries", json=FUEL).json()
+    response = client.put(f"/api/fuel-entries/{entry['id']}", json={**FUEL, "liters": 41})
+    assert response.status_code == 200
+
+
+def test_update_fuel_entry_onto_another_is_duplicate(client):
+    client.post("/api/fuel-entries", json=FUEL)
+    other = client.post("/api/fuel-entries", json={**FUEL, "mileage_km": 10100}).json()
+    url = f"/api/fuel-entries/{other['id']}"
+    assert client.put(url, json=FUEL).status_code == 409
+    assert client.put(f"{url}?force=true", json=FUEL).status_code == 200

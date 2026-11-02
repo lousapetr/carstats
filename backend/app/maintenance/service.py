@@ -8,6 +8,7 @@ from app.car.service import (
     recalculate_current_mileage,
     validate_mileage_consistency,
 )
+from app.core.duplicates import DuplicateEntryError, czech_date, normalize_text
 from app.currency.service import get_rate
 from app.maintenance.models import ServiceEntry, ServiceEntryCreate, ServiceEntryRead
 
@@ -34,7 +35,27 @@ def _attachments_for(db: Session, entry: ServiceEntry) -> list[Attachment]:
     return list(db.exec(select(Attachment).where(Attachment.service_entry_id == entry.id)).all())
 
 
-def create_entry(db: Session, data: ServiceEntryCreate) -> ServiceEntryRead:
+def _ensure_not_duplicate(db: Session, data: ServiceEntryCreate, exclude_id: int | None) -> None:
+    query = select(ServiceEntry).where(
+        ServiceEntry.date == data.date,
+        ServiceEntry.mileage_km == data.mileage_km,
+        ServiceEntry.type == data.type,
+    )
+    if exclude_id is not None:
+        query = query.where(col(ServiceEntry.id) != exclude_id)
+    wanted = normalize_text(data.description)
+    if any(normalize_text(e.description) == wanted for e in db.exec(query).all()):
+        raise DuplicateEntryError(
+            f"Stejný servisní záznam z {czech_date(data.date)} při {data.mileage_km:g} km"
+            " už existuje."
+        )
+
+
+def create_entry(
+    db: Session, data: ServiceEntryCreate, *, allow_duplicate: bool = False
+) -> ServiceEntryRead:
+    if not allow_duplicate:
+        _ensure_not_duplicate(db, data, exclude_id=None)
     validate_mileage_consistency(db, data.date, data.mileage_km)
     exchange_rate = get_rate(db, data.currency)
 
@@ -55,8 +76,12 @@ def create_entry(db: Session, data: ServiceEntryCreate) -> ServiceEntryRead:
     return _to_read(entry, [])
 
 
-def update_entry(db: Session, entry: ServiceEntry, data: ServiceEntryCreate) -> ServiceEntryRead:
+def update_entry(
+    db: Session, entry: ServiceEntry, data: ServiceEntryCreate, *, allow_duplicate: bool = False
+) -> ServiceEntryRead:
     assert entry.id is not None
+    if not allow_duplicate:
+        _ensure_not_duplicate(db, data, exclude_id=entry.id)
     validate_mileage_consistency(db, data.date, data.mileage_km, exclude_service_id=entry.id)
     exchange_rate = get_rate(db, data.currency)
 

@@ -3,9 +3,10 @@ import type { Attachment, ServiceEntry, ServiceEntryInput } from '../types'
 
 export const maintenanceApi = {
   list: () => api.get<ServiceEntry[]>('/api/service-entries'),
-  create: (data: ServiceEntryInput) => api.post<ServiceEntry>('/api/service-entries', data),
-  update: (id: number, data: ServiceEntryInput) =>
-    api.put<ServiceEntry>(`/api/service-entries/${id}`, data),
+  create: (data: ServiceEntryInput, force = false) =>
+    api.post<ServiceEntry>(`/api/service-entries${force ? '?force=true' : ''}`, data),
+  update: (id: number, data: ServiceEntryInput, force = false) =>
+    api.put<ServiceEntry>(`/api/service-entries/${id}${force ? '?force=true' : ''}`, data),
   remove: (id: number) => api.delete(`/api/service-entries/${id}`),
   uploadAttachment: (entryId: number, file: File) => {
     const formData = new FormData()

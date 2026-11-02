@@ -1,6 +1,11 @@
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import { isUnauthorized, mutationErrorMessage, shouldRetryQuery } from './api/errors'
+import {
+  isDuplicateConflict,
+  isUnauthorized,
+  mutationErrorMessage,
+  shouldRetryQuery,
+} from './api/errors'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { LoginScreen } from './auth/LoginScreen'
 import { ConfirmDialogHost } from './components/ui/ConfirmDialogHost'
@@ -12,7 +17,7 @@ import { MaintenanceLogPage } from './features/maintenance/MaintenanceLogPage'
 import { RemindersPage } from './features/reminders/RemindersPage'
 import { SettingsPage } from './features/settings/SettingsPage'
 import { AppShell } from './layout/AppShell'
-import { emitErrorToast } from './lib/toastBus'
+import { emitErrorToast, emitSuccessToast } from './lib/toastBus'
 
 // A 401 mid-session means the cookie expired or the address was dropped from
 // the allowlist; clearing the cached user sends AuthGate back to the login screen.
@@ -22,12 +27,19 @@ function signOutOnUnauthorized(error: unknown) {
 
 // Failed reads render an inline ErrorState with a retry button on their own
 // page; failed writes toast, since the form they came from is still on screen.
+// A mutation opts into a success toast via `meta.successMessage`.
 const queryClient: QueryClient = new QueryClient({
   defaultOptions: { queries: { retry: shouldRetryQuery, staleTime: 30_000 } },
   queryCache: new QueryCache({ onError: signOutOnUnauthorized }),
   mutationCache: new MutationCache({
-    onError: (error) => {
-      emitErrorToast(mutationErrorMessage(error))
+    onSuccess: (_data, _variables, _result, mutation) => {
+      const message = mutation.meta?.successMessage
+      if (message) emitSuccessToast(message)
+    },
+    onError: (error, _variables, _result, mutation) => {
+      if (!(mutation.meta?.confirmsDuplicate && isDuplicateConflict(error))) {
+        emitErrorToast(mutationErrorMessage(error))
+      }
       signOutOnUnauthorized(error)
     },
   }),

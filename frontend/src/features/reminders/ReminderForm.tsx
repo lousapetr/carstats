@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { type DefaultValues, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Button } from '../../components/ui/Button'
 import { dateInputClass, Field, inputClass } from '../../components/ui/Field'
@@ -18,6 +18,15 @@ const schema = z.object({
 export type ReminderFormValues = z.output<typeof schema>
 type ReminderFormInput = z.input<typeof schema>
 
+const blankValues = (): DefaultValues<ReminderFormInput> => ({
+  title: '',
+  due_date: '',
+  due_mileage_km: '',
+  recurrence_days: '',
+  recurrence_km: '',
+  notes: '',
+})
+
 export function ReminderForm({
   onSubmit,
   isSubmitting,
@@ -35,11 +44,14 @@ export function ReminderForm({
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting: isFormSubmitting },
   } = useForm<ReminderFormInput, unknown, ReminderFormValues>({
     resolver: zodResolver(schema),
-    defaultValues,
+    defaultValues: defaultValues ?? blankValues(),
   })
+
+  // The form is busy from submit through validation, the request and any confirm dialog.
+  const busy = isSubmitting || isFormSubmitting
 
   return (
     <form
@@ -51,7 +63,7 @@ export function ReminderForm({
           return
         }
         if (!defaultValues) {
-          reset({})
+          reset(blankValues())
         }
       })}
       className="grid grid-cols-2 gap-3"
@@ -79,8 +91,8 @@ export function ReminderForm({
         </Field>
       </div>
       <div className="col-span-2 flex gap-2">
-        <Button type="submit" disabled={isSubmitting} className="flex-1">
-          {isSubmitting ? 'Ukládám…' : (submitLabel ?? 'Přidat připomínku')}
+        <Button type="submit" disabled={busy} className="flex-1">
+          {busy ? 'Ukládám…' : (submitLabel ?? 'Přidat připomínku')}
         </Button>
         {onCancel && (
           <Button type="button" variant="secondary" onClick={onCancel}>

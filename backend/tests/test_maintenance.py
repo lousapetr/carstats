@@ -118,3 +118,50 @@ def test_same_day_service_entries_are_ordered_by_mileage(client):
 
     entries = client.get("/api/service-entries").json()
     assert [e["mileage_km"] for e in entries] == [10300, 10100, 10000]
+
+
+SERVICE = {
+    "date": "2026-08-02",
+    "mileage_km": 10200,
+    "type": "oil_change",
+    "description": "Oil and filter",
+    "cost": 80,
+}
+
+
+def test_duplicate_service_entry_ignores_case_and_whitespace(client):
+    client.post("/api/service-entries", json=SERVICE)
+    response = client.post(
+        "/api/service-entries", json={**SERVICE, "description": "  oil   AND filter "}
+    )
+    assert response.status_code == 409
+    assert "už existuje" in response.json()["detail"]
+
+
+def test_duplicate_service_entry_with_missing_descriptions(client):
+    bare = {k: v for k, v in SERVICE.items() if k != "description"}
+    client.post("/api/service-entries", json=bare)
+    assert client.post("/api/service-entries", json={**bare, "description": ""}).status_code == 409
+
+
+def test_service_entry_with_different_description_or_type_is_not_duplicate(client):
+    client.post("/api/service-entries", json=SERVICE)
+    assert (
+        client.post("/api/service-entries", json={**SERVICE, "description": "Brake pads"})
+    ).status_code == 201
+    assert (
+        client.post("/api/service-entries", json={**SERVICE, "type": "tires"})
+    ).status_code == 201
+
+
+def test_duplicate_service_entry_saved_with_force(client):
+    client.post("/api/service-entries", json=SERVICE)
+    response = client.post("/api/service-entries?force=true", json=SERVICE)
+    assert response.status_code == 201
+    assert len(client.get("/api/service-entries").json()) == 2
+
+
+def test_update_service_entry_ignores_itself(client):
+    entry = client.post("/api/service-entries", json=SERVICE).json()
+    response = client.put(f"/api/service-entries/{entry['id']}", json={**SERVICE, "cost": 90})
+    assert response.status_code == 200

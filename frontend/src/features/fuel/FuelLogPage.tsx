@@ -15,6 +15,7 @@ import {
   formatMoney,
   formatMoneyPerLiter,
 } from '../../lib/format'
+import { submitConfirmingDuplicate } from '../../lib/submitConfirmingDuplicate'
 import type { FuelEntry, FuelEntryInput } from '../../types'
 import { FuelForm } from './FuelForm'
 
@@ -46,16 +47,27 @@ export function FuelLogPage() {
   }
 
   const createMutation = useMutation({
-    mutationFn: (data: FuelEntryInput) => fuelApi.create(data),
+    mutationFn: ({ data, force }: { data: FuelEntryInput; force: boolean }) =>
+      fuelApi.create(data, force),
     onSuccess: invalidate,
+    meta: { successMessage: 'Tankování uloženo.', confirmsDuplicate: true },
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: FuelEntryInput }) => fuelApi.update(id, data),
+    mutationFn: ({
+      id,
+      data,
+      force,
+    }: {
+      id: number
+      data: FuelEntryInput
+      force: boolean
+    }) => fuelApi.update(id, data, force),
     onSuccess: () => {
       invalidate()
       setEditingEntry(null)
     },
+    meta: { successMessage: 'Změny uloženy.', confirmsDuplicate: true },
   })
 
   const deleteMutation = useMutation({
@@ -74,9 +86,11 @@ export function FuelLogPage() {
           submitLabel={editingEntry ? 'Uložit změny' : undefined}
           onCancel={editingEntry ? () => setEditingEntry(null) : undefined}
           onSubmit={(values) =>
-            editingEntry
-              ? updateMutation.mutateAsync({ id: editingEntry.id, data: values })
-              : createMutation.mutateAsync(values)
+            submitConfirmingDuplicate((force) =>
+              editingEntry
+                ? updateMutation.mutateAsync({ id: editingEntry.id, data: values, force })
+                : createMutation.mutateAsync({ data: values, force }),
+            )
           }
           isSubmitting={createMutation.isPending || updateMutation.isPending}
         />

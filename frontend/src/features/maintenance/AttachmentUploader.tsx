@@ -23,6 +23,7 @@ export function AttachmentUploader({
   const uploadMutation = useMutation({
     mutationFn: (file: File) => maintenanceApi.uploadAttachment(entryId, file),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['service-entries'] }),
+    meta: { successMessage: 'Příloha nahrána.' },
   })
 
   const deleteMutation = useMutation({

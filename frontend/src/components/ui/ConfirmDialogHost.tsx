@@ -22,8 +22,12 @@ export function ConfirmDialogHost() {
           <Button type="button" variant="secondary" onClick={() => respond(false)}>
             Zrušit
           </Button>
-          <Button type="button" variant="danger" onClick={() => respond(true)}>
-            Smazat
+          <Button
+            type="button"
+            variant={pending.variant ?? 'danger'}
+            onClick={() => respond(true)}
+          >
+            {pending.confirmLabel ?? 'Smazat'}
           </Button>
         </div>
       </div>

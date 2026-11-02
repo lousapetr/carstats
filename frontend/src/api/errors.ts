@@ -4,6 +4,10 @@ export function isUnauthorized(error: unknown): boolean {
   return error instanceof ApiError && error.status === 401
 }
 
+export function isDuplicateConflict(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.status === 409
+}
+
 /** Retry a failed read once, but only when a retry could help: a network
  *  error or a 5xx. A 4xx will fail the same way again. */
 export function shouldRetryQuery(failureCount: number, error: unknown): boolean {

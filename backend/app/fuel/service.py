@@ -8,6 +8,7 @@ from app.car.service import (
     recalculate_current_mileage,
     validate_mileage_consistency,
 )
+from app.core.duplicates import DuplicateEntryError, czech_date
 from app.currency.service import get_rate
 from app.fuel.models import FuelEntry, FuelEntryCreate, FuelEntryRead
 
@@ -110,7 +111,23 @@ def _consumption_for_entry(db: Session, entry: FuelEntry) -> float | None:
     return _compute_consumptions(entries).get(entry.id)
 
 
-def create_entry(db: Session, data: FuelEntryCreate) -> FuelEntryRead:
+def _ensure_not_duplicate(db: Session, data: FuelEntryCreate, exclude_id: int | None) -> None:
+    query = select(FuelEntry).where(
+        FuelEntry.date == data.date, FuelEntry.mileage_km == data.mileage_km
+    )
+    if exclude_id is not None:
+        query = query.where(col(FuelEntry.id) != exclude_id)
+    if db.exec(query).first() is not None:
+        raise DuplicateEntryError(
+            f"Tankování z {czech_date(data.date)} při {data.mileage_km:g} km už je zapsané."
+        )
+
+
+def create_entry(
+    db: Session, data: FuelEntryCreate, *, allow_duplicate: bool = False
+) -> FuelEntryRead:
+    if not allow_duplicate:
+        _ensure_not_duplicate(db, data, exclude_id=None)
     validate_mileage_consistency(db, data.date, data.mileage_km)
     exchange_rate = get_rate(db, data.currency)
 
@@ -132,7 +149,11 @@ def create_entry(db: Session, data: FuelEntryCreate) -> FuelEntryRead:
     return _to_read(entry, _consumption_for_entry(db, entry))
 
 
-def update_entry(db: Session, entry: FuelEntry, data: FuelEntryCreate) -> FuelEntryRead:
+def update_entry(
+    db: Session, entry: FuelEntry, data: FuelEntryCreate, *, allow_duplicate: bool = False
+) -> FuelEntryRead:
+    if not allow_duplicate:
+        _ensure_not_duplicate(db, data, exclude_id=entry.id)
     validate_mileage_consistency(db, data.date, data.mileage_km, exclude_fuel_id=entry.id)
     exchange_rate = get_rate(db, data.currency)
 
