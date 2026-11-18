@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { type DefaultValues, useForm } from 'react-hook-form'
+import { useRef } from 'react'
+import { type DefaultValues, type Resolver, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { currencyApi } from '../../api/currency'
 import { Button } from '../../components/ui/Button'
@@ -11,7 +12,7 @@ import { SERVICE_TYPE_VALUES, SERVICE_TYPES } from '../../lib/serviceTypes'
 
 const emptyToUndefined = (val: unknown) => (val === '' ? undefined : val)
 
-const schema = z.object({
+const fullSchema = z.object({
   date: z.string().min(1, 'Povinné pole'),
   mileage_km: z.coerce.number().positive('Musí být kladné číslo'),
   type: z.enum(SERVICE_TYPE_VALUES),
@@ -24,8 +25,46 @@ const schema = z.object({
   notes: z.string().max(1000, 'Nejvýše 1000 znaků').optional(),
 })
 
-export type MaintenanceFormValues = z.output<typeof schema>
-type MaintenanceFormInput = z.input<typeof schema>
+// A draft may leave date, mileage and cost empty, as long as one substantive
+// field is filled in. That error sits on `notes` because react-hook-form drops
+// `root` errors on submit.
+const draftSchema = z
+  .object({
+    date: z.string().transform((v) => v || undefined),
+    mileage_km: z.preprocess(
+      emptyToUndefined,
+      z.coerce.number().positive('Musí být kladné číslo').optional(),
+    ),
+    type: z.enum(SERVICE_TYPE_VALUES),
+    description: z.string().max(1000, 'Nejvýše 1000 znaků').optional(),
+    cost: z.preprocess(
+      emptyToUndefined,
+      z.coerce.number().min(0, 'Musí být 0 nebo více').optional(),
+    ),
+    currency: z.enum(CURRENCY_CODES),
+    notes: z.string().max(1000, 'Nejvýše 1000 znaků').optional(),
+  })
+  .refine(
+    (v) =>
+      v.mileage_km !== undefined ||
+      v.cost !== undefined ||
+      !!v.description?.trim() ||
+      !!v.notes?.trim(),
+    { message: 'Vyplňte aspoň jeden údaj.', path: ['notes'] },
+  )
+
+/** Draft output is the loosest shape; a complete entry's values fit it too. */
+export type MaintenanceFormValues = z.output<typeof draftSchema>
+type MaintenanceFormInput = z.input<typeof draftSchema>
+
+// The complete-entry schema's input type marks mileage and the money fields required,
+// the form's (draft) one leaves them optional; both describe the same field values.
+const fullResolver = zodResolver(fullSchema) as unknown as Resolver<
+  MaintenanceFormInput,
+  unknown,
+  MaintenanceFormValues
+>
+const draftResolver = zodResolver(draftSchema)
 
 // Every field explicit: reset() leaves a field it gets no value for showing its old input.
 const blankValues = (): DefaultValues<MaintenanceFormInput> => ({
@@ -45,12 +84,23 @@ export function MaintenanceForm({
   submitLabel,
   onCancel,
 }: {
-  onSubmit: (values: MaintenanceFormValues) => Promise<unknown>
+  onSubmit: (values: MaintenanceFormValues, options: { draft: boolean }) => Promise<unknown>
   isSubmitting: boolean
   defaultValues?: MaintenanceFormInput
   submitLabel?: string
   onCancel?: () => void
 }) {
+  // See FuelForm: the pressed submit button decides draft vs. complete.
+  const modeRef = useRef<'full' | 'draft'>('full')
+  const resolver: Resolver<MaintenanceFormInput, unknown, MaintenanceFormValues> = (
+    values,
+    context,
+    options,
+  ) =>
+    modeRef.current === 'draft'
+      ? draftResolver(values, context, options)
+      : fullResolver(values, context, options)
+
   const {
     register,
     handleSubmit,
@@ -58,7 +108,7 @@ export function MaintenanceForm({
     watch,
     formState: { errors, isSubmitting: isFormSubmitting },
   } = useForm<MaintenanceFormInput, unknown, MaintenanceFormValues>({
-    resolver: zodResolver(schema),
+    resolver,
     defaultValues: defaultValues ?? blankValues(),
   })
 
@@ -74,7 +124,7 @@ export function MaintenanceForm({
       onSubmit={handleSubmit(async (values) => {
         // See FuelForm: reset only after the server accepted the entry.
         try {
-          await onSubmit(values)
+          await onSubmit(values, { draft: modeRef.current === 'draft' })
         } catch {
           return
         }
@@ -128,13 +178,26 @@ export function MaintenanceForm({
         </Field>
       </div>
       <div className="col-span-2">
-        <Field label="Poznámka">
+        <Field label="Poznámka" error={errors.notes?.message}>
           <input type="text" className={inputClass} {...register('notes')} />
         </Field>
       </div>
       <div className="col-span-2 flex gap-2">
-        <Button type="submit" disabled={busy} className="flex-1">
+        <Button
+          type="submit"
+          disabled={busy}
+          className="flex-1"
+          onClick={() => (modeRef.current = 'full')}
+        >
           {busy ? 'Ukládám…' : (submitLabel ?? 'Zapsat servis')}
+        </Button>
+        <Button
+          type="submit"
+          variant="secondary"
+          disabled={busy}
+          onClick={() => (modeRef.current = 'draft')}
+        >
+          Uložit jako rozpracované
         </Button>
         {onCancel && (
           <Button type="button" variant="secondary" onClick={onCancel}>

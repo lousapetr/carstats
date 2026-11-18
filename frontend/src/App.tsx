@@ -32,8 +32,9 @@ const queryClient: QueryClient = new QueryClient({
   defaultOptions: { queries: { retry: shouldRetryQuery, staleTime: 30_000 } },
   queryCache: new QueryCache({ onError: signOutOnUnauthorized }),
   mutationCache: new MutationCache({
-    onSuccess: (_data, _variables, _result, mutation) => {
-      const message = mutation.meta?.successMessage
+    onSuccess: (data, _variables, _result, mutation) => {
+      const spec = mutation.meta?.successMessage
+      const message = typeof spec === 'function' ? spec(data) : spec
       if (message) emitSuccessToast(message)
     },
     onError: (error, _variables, _result, mutation) => {

@@ -87,10 +87,27 @@ Even though it's named for the `car` domain, `car/service.py` holds two helpers 
 Because mileage is validated to rise with date, it is also the **ordering key** for fuel and
 service entries everywhere — lists, exports, charts and the dashboard activity log sort by
 `mileage_km` (then `id`), never by `date`: two fill-ups on one day are common, and a date sort
-leaves them in arbitrary order.
+leaves them in arbitrary order. The one exception is drafts (below), which lead the fuel and
+service lists, newest-created first.
 
 `CarProfile` itself is a lazily-created singleton row (`get_or_create_profile`), not a
 multi-vehicle table.
+
+### Draft entries
+
+A fuel or service entry can be saved unfinished (`is_draft`), with `date`, `mileage_km` and the money
+fields (fuel `liters`/`price_per_liter`, service `cost`) nullable. The `*Create` schemas validate it: a
+draft needs at least one substantive field (fuel: mileage, liters, price, notes; service: mileage,
+cost, description, notes — text counts only when non-blank; date, currency, `full_tank` and service
+`type` never count), a non-draft needs every complete-entry field (both → 422). Drafts are invisible to
+everything that reasons across entries: `recalculate_current_mileage`, `validate_mileage_consistency`,
+the duplicate guard (neither checked on a draft save, nor matched against one), fuel consumption
+(`full_to_full_intervals` callers pass non-drafts), every dashboard figure/list, and the CSV exports.
+They still snapshot `exchange_rate`. Finishing a draft is a PUT with `is_draft=false`, which runs the
+full duplicate + mileage validation like any save; a complete entry may also be turned back into a
+draft. Lists put drafts first (newest-created, then id), with `consumption_l_per_100km` null; the
+dashboard lists them in the non-period-scoped `drafts` field, linking to `/fuel?edit=<id>` or
+`/maintenance?edit=<id>`. The forms pick the draft or full zod schema by which submit button was pressed.
 
 ### Duplicate-entry guard
 

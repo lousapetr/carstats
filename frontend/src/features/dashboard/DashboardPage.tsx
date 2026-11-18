@@ -27,6 +27,7 @@ import type { Period } from '../../types'
 import { ActivityList } from './ActivityList'
 import { CostBreakdownChart } from './CostBreakdownChart'
 import { Delta } from './Delta'
+import { DraftsCard } from './DraftsCard'
 import { FirstRunCard } from './FirstRunCard'
 import { ConsumptionTrendChart, PricePerLiterChart } from './FuelTrendChart'
 import { MonthlyCostChart } from './MonthlyCostChart'
@@ -81,7 +82,7 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* The car and its reminders are about now, not the selected period, so
+      {/* The car, its reminders and drafts are about now, not the selected period, so
           they sit above the selector that scopes everything below it. */}
       <div>
         <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -105,6 +106,8 @@ export function DashboardPage() {
           ))}
         </Card>
       )}
+
+      <DraftsCard drafts={dashboard.drafts} />
 
       {/* No entries in any year means nothing has been logged yet. */}
       {dashboard.available_years.length === 0 ? (

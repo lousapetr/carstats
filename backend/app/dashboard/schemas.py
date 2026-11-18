@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.car.models import CarProfileRead
+from app.currency.models import Currency
 from app.maintenance.models import ServiceType
 from app.reminders.models import ReminderRead
 
@@ -27,6 +28,24 @@ class ServiceTimelineItem(BaseModel):
 
 
 TimelineItem = FuelTimelineItem | ServiceTimelineItem
+
+
+class DraftItem(BaseModel):
+    """An unfinished entry. Amounts are in the entry's own currency; fuel fills
+    `liters` and `price_total`, service fills `service_type`, `description`
+    and `cost`.
+    """
+
+    kind: Literal["fuel", "service"]
+    id: int
+    date: date | None
+    mileage_km: float | None
+    currency: Currency
+    liters: float | None = None
+    price_total: float | None = None
+    service_type: ServiceType | None = None
+    description: str | None = None
+    cost: float | None = None
 
 
 class FuelTrendPoint(BaseModel):
@@ -88,8 +107,10 @@ class Dashboard(BaseModel):
     fuel log — and one straddling the window start is neither lost nor
     understated.
 
-    `car` and `upcoming_reminders` are deliberately not period-scoped: the
-    odometer is a fact about now and a reminder is about the future.
+    `car`, `upcoming_reminders` and `drafts` are deliberately not
+    period-scoped: the odometer is a fact about now, a reminder is about the
+    future and a draft has no reliable date. Drafts are left out of every
+    figure and list below.
     """
 
     period: PeriodInfo
@@ -113,5 +134,7 @@ class Dashboard(BaseModel):
     monthly_costs: list[MonthlyCostPoint]
     monthly_granularity: Literal["month", "year"]
     upcoming_reminders: list[ReminderRead]
+    # Newest-created first, both kinds mixed.
+    drafts: list[DraftItem]
     # Every entry in the window, newest first.
     activity: list[TimelineItem]

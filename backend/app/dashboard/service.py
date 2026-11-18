@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import date
 from typing import Literal
 
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.car.models import CarProfileRead
 from app.car.service import get_or_create_profile
@@ -11,6 +11,7 @@ from app.dashboard.schemas import (
     CostBreakdown,
     CostTotals,
     Dashboard,
+    DraftItem,
     FuelTimelineItem,
     FuelTrendPoint,
     MonthlyCostPoint,
@@ -28,11 +29,34 @@ from app.reminders.service import list_active_reminders
 MAX_MONTHLY_BUCKETS = 36
 
 
+# Everything below works on complete (non-draft) entries, whose fields are all set;
+# these accessors narrow the nullable columns for the type checker.
+def _day(entry: FuelEntry | ServiceEntry) -> date:
+    assert entry.date is not None
+    return entry.date
+
+
+def _km(entry: FuelEntry | ServiceEntry) -> float:
+    assert entry.mileage_km is not None
+    return entry.mileage_km
+
+
+def _liters(entry: FuelEntry) -> float:
+    assert entry.liters is not None
+    return entry.liters
+
+
+def _price_per_liter(entry: FuelEntry) -> float:
+    assert entry.price_per_liter is not None
+    return entry.price_per_liter
+
+
 def _fuel_cost_czk(entry: FuelEntry) -> float:
-    return entry.liters * entry.price_per_liter * entry.exchange_rate
+    return _liters(entry) * _price_per_liter(entry) * entry.exchange_rate
 
 
 def _service_cost_czk(entry: ServiceEntry) -> float:
+    assert entry.cost is not None
     return entry.cost * entry.exchange_rate
 
 
@@ -58,7 +82,7 @@ def _totals(fuel: Sequence[FuelEntry], service: Sequence[ServiceEntry]) -> CostT
     service_cost = sum(_service_cost_czk(e) for e in service)
     return CostTotals(
         fuel=round(fuel_cost, 2),
-        fuel_liters=round(sum(e.liters for e in fuel), 2),
+        fuel_liters=round(sum(_liters(e) for e in fuel), 2),
         fuel_entries=len(fuel),
         maintenance=round(service_cost, 2),
         maintenance_entries=len(service),
@@ -81,9 +105,7 @@ def _distance_km(
     odometer when the window reaches today, else at the newest reading inside
     it. For `all` this is current mileage minus the lowest reading ever.
     """
-    readings = sorted(
-        [(e.date, e.mileage_km) for e in fuel] + [(e.date, e.mileage_km) for e in service]
-    )
+    readings = sorted([(_day(e), _km(e)) for e in fuel] + [(_day(e), _km(e)) for e in service])
     in_window = [km for d, km in readings if window.contains(d)]
     if not in_window:
         return None
@@ -99,7 +121,7 @@ def _distance_km(
 def _bucket_bounds(
     window: DateWindow, today: date, fuel: Sequence[FuelEntry], service: Sequence[ServiceEntry]
 ) -> tuple[date, date] | None:
-    dates = [e.date for e in fuel] + [e.date for e in service]
+    dates = [_day(e) for e in fuel] + [_day(e) for e in service]
     start = window.start if window.start is not None else min(dates, default=None)
     end = window.end if window.end is not None else max([today, *dates])
     if start is None:
@@ -133,9 +155,9 @@ def _monthly_costs(
 
     buckets = {k: [0.0, 0.0] for k in keys}
     for e in fuel:
-        buckets[key(e.date)][0] += _fuel_cost_czk(e)
+        buckets[key(_day(e))][0] += _fuel_cost_czk(e)
     for e in service:
-        buckets[key(e.date)][1] += _service_cost_czk(e)
+        buckets[key(_day(e))][1] += _service_cost_czk(e)
     points = [
         MonthlyCostPoint(bucket=k, fuel=round(f, 2), service=round(s, 2))
         for k, (f, s) in buckets.items()
@@ -157,18 +179,18 @@ def _timeline(fuel: Sequence[FuelEntry], service: Sequence[ServiceEntry]) -> lis
     # entries logged on the same day.
     timeline: list[TimelineItem] = [
         FuelTimelineItem(
-            date=e.date,
-            mileage_km=e.mileage_km,
+            date=_day(e),
+            mileage_km=_km(e),
             cost=round(_fuel_cost_czk(e), 2),
-            liters=e.liters,
-            price_per_liter=round(e.price_per_liter * e.exchange_rate, 3),
+            liters=_liters(e),
+            price_per_liter=round(_price_per_liter(e) * e.exchange_rate, 3),
         )
         for e in fuel
     ]
     timeline += [
         ServiceTimelineItem(
-            date=e.date,
-            mileage_km=e.mileage_km,
+            date=_day(e),
+            mileage_km=_km(e),
             cost=round(_service_cost_czk(e), 2),
             service_type=e.type,
             description=e.description,
@@ -179,19 +201,59 @@ def _timeline(fuel: Sequence[FuelEntry], service: Sequence[ServiceEntry]) -> lis
     return timeline
 
 
+def _drafts(db: Session) -> list[DraftItem]:
+    fuel = db.exec(select(FuelEntry).where(col(FuelEntry.is_draft).is_(True))).all()
+    service = db.exec(select(ServiceEntry).where(col(ServiceEntry.is_draft).is_(True))).all()
+    created = [(e.created_at, e.id, e) for e in (*fuel, *service)]
+    created.sort(key=lambda t: (t[0], t[1] or 0), reverse=True)
+    items: list[DraftItem] = []
+    for _, _, e in created:
+        assert e.id is not None
+        if isinstance(e, FuelEntry):
+            items.append(
+                DraftItem(
+                    kind="fuel",
+                    id=e.id,
+                    date=e.date,
+                    mileage_km=e.mileage_km,
+                    currency=e.currency,
+                    liters=e.liters,
+                    price_total=(
+                        round(e.liters * e.price_per_liter, 2)
+                        if e.liters is not None and e.price_per_liter is not None
+                        else None
+                    ),
+                )
+            )
+        else:
+            items.append(
+                DraftItem(
+                    kind="service",
+                    id=e.id,
+                    date=e.date,
+                    mileage_km=e.mileage_km,
+                    currency=e.currency,
+                    service_type=e.type,
+                    description=e.description,
+                    cost=e.cost,
+                )
+            )
+    return items
+
+
 def get_dashboard(db: Session, period: str, today: date | None = None) -> Dashboard:
     today = today or date.today()
     window = parse_period(period, today)
     previous = previous_window(period, today)
     profile = get_or_create_profile(db)
 
-    all_fuel = db.exec(select(FuelEntry)).all()
-    all_service = db.exec(select(ServiceEntry)).all()
+    all_fuel = db.exec(select(FuelEntry).where(col(FuelEntry.is_draft).is_(False))).all()
+    all_service = db.exec(select(ServiceEntry).where(col(ServiceEntry.is_draft).is_(False))).all()
 
     # Costs filter *entries*: a cost happens on a date. Consumption below
     # filters *intervals* instead — see the Dashboard docstring for why.
-    fuel = [e for e in all_fuel if window.contains(e.date)]
-    service = [e for e in all_service if window.contains(e.date)]
+    fuel = [e for e in all_fuel if window.contains(_day(e))]
+    service = [e for e in all_service if window.contains(_day(e))]
     totals = _totals(fuel, service)
 
     intervals = full_to_full_intervals(all_fuel)
@@ -206,8 +268,8 @@ def get_dashboard(db: Session, period: str, today: date | None = None) -> Dashbo
     avg_price_per_liter_delta = None
     if previous is not None:
         previous_totals = _totals(
-            [e for e in all_fuel if previous.contains(e.date)],
-            [e for e in all_service if previous.contains(e.date)],
+            [e for e in all_fuel if previous.contains(_day(e))],
+            [e for e in all_service if previous.contains(_day(e))],
         )
         if previous_totals.total > 0:
             total_cost_delta_pct = round(
@@ -239,10 +301,15 @@ def get_dashboard(db: Session, period: str, today: date | None = None) -> Dashbo
         )
         # Oldest first by odometer, not date, so same-day fill-ups stay in order.
         for e in reversed(list_entries_with_stats(db))
-        if window.contains(e.date)
+        if not e.is_draft
+        and e.date is not None
+        and e.price_total_czk is not None
+        and e.liters is not None
+        and e.price_per_liter_czk is not None
+        and window.contains(e.date)
     ]
 
-    years = {e.date.year for e in all_fuel} | {e.date.year for e in all_service}
+    years = {_day(e).year for e in all_fuel} | {_day(e).year for e in all_service}
 
     return Dashboard(
         period=PeriodInfo(
@@ -269,5 +336,6 @@ def get_dashboard(db: Session, period: str, today: date | None = None) -> Dashbo
         monthly_costs=monthly_costs,
         monthly_granularity=granularity,
         upcoming_reminders=list_active_reminders(db),
+        drafts=_drafts(db),
         activity=_timeline(fuel, service),
     )

@@ -1,6 +1,6 @@
 from datetime import date as date_type
 
-from sqlmodel import Session, func, select
+from sqlmodel import Session, col, func, select
 
 from app.car.models import CarProfile
 
@@ -16,15 +16,19 @@ def get_or_create_profile(db: Session) -> CarProfile:
 
 
 def recalculate_current_mileage(db: Session) -> None:
-    """Recompute CarProfile.current_mileage_km as the max across all fuel/service
-    entries, so edits and deletes of the highest-mileage entry stay correct
+    """Recompute CarProfile.current_mileage_km as the max across all complete
+    (non-draft) fuel/service entries, so edits and deletes of the highest-mileage entry stay correct
     (a plain monotonic "bump" would leave stale data behind).
     """
     from app.fuel.models import FuelEntry
     from app.maintenance.models import ServiceEntry
 
-    fuel_max = db.exec(select(func.max(FuelEntry.mileage_km))).first()
-    service_max = db.exec(select(func.max(ServiceEntry.mileage_km))).first()
+    fuel_max = db.exec(
+        select(func.max(FuelEntry.mileage_km)).where(col(FuelEntry.is_draft).is_(False))
+    ).first()
+    service_max = db.exec(
+        select(func.max(ServiceEntry.mileage_km)).where(col(ServiceEntry.is_draft).is_(False))
+    ).first()
     candidates = [m for m in (fuel_max, service_max) if m is not None]
 
     profile = get_or_create_profile(db)
@@ -48,11 +52,19 @@ def validate_mileage_consistency(
     from app.fuel.models import FuelEntry
     from app.maintenance.models import ServiceEntry
 
-    fuel_entries = db.exec(select(FuelEntry)).all()
-    service_entries = db.exec(select(ServiceEntry)).all()
+    fuel_entries = db.exec(select(FuelEntry).where(col(FuelEntry.is_draft).is_(False))).all()
+    service_entries = db.exec(
+        select(ServiceEntry).where(col(ServiceEntry.is_draft).is_(False))
+    ).all()
 
-    points = [(e.date, e.mileage_km) for e in fuel_entries if e.id != exclude_fuel_id] + [
-        (e.date, e.mileage_km) for e in service_entries if e.id != exclude_service_id
+    points = [
+        (e.date, e.mileage_km)
+        for e in fuel_entries
+        if e.id != exclude_fuel_id and e.date is not None and e.mileage_km is not None
+    ] + [
+        (e.date, e.mileage_km)
+        for e in service_entries
+        if e.id != exclude_service_id and e.date is not None and e.mileage_km is not None
     ]
 
     before = [m for d, m in points if d < entry_date]

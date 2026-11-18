@@ -30,30 +30,33 @@ export interface CarProfileInput {
   year: number | null
 }
 
+/** A draft may leave date, mileage, liters and price empty; a complete entry never does. */
 export interface FuelEntry {
   id: number
-  date: string
-  mileage_km: number
-  liters: number
-  price_per_liter: number
+  date: string | null
+  mileage_km: number | null
+  liters: number | null
+  price_per_liter: number | null
   currency: Currency
   exchange_rate: number
   full_tank: boolean
   notes: string | null
-  price_per_liter_czk: number
-  price_total: number
-  price_total_czk: number
+  is_draft: boolean
+  price_per_liter_czk: number | null
+  price_total: number | null
+  price_total_czk: number | null
   consumption_l_per_100km: number | null
 }
 
 export interface FuelEntryInput {
-  date: string
-  mileage_km: number
-  liters: number
-  price_per_liter: number
+  date?: string | null
+  mileage_km?: number | null
+  liters?: number | null
+  price_per_liter?: number | null
   currency: Currency
   full_tank?: boolean
   notes?: string | null
+  is_draft?: boolean
 }
 
 export type ServiceType =
@@ -74,28 +77,31 @@ export interface Attachment {
   content_type: string
 }
 
+/** A draft may leave date, mileage and cost empty; a complete entry never does. */
 export interface ServiceEntry {
   id: number
-  date: string
-  mileage_km: number
+  date: string | null
+  mileage_km: number | null
   type: ServiceType
   description: string | null
-  cost: number
+  cost: number | null
   currency: Currency
   exchange_rate: number
-  cost_czk: number
+  cost_czk: number | null
   notes: string | null
+  is_draft: boolean
   attachments: Attachment[]
 }
 
 export interface ServiceEntryInput {
-  date: string
-  mileage_km: number
+  date?: string | null
+  mileage_km?: number | null
   type: ServiceType
   description?: string | null
-  cost: number
+  cost?: number | null
   currency: Currency
   notes?: string | null
+  is_draft?: boolean
 }
 
 export type ReminderStatus = 'ok' | 'due_soon' | 'overdue'
@@ -166,6 +172,20 @@ export interface MonthlyCostPoint {
   service: number
 }
 
+/** An unfinished entry; amounts are in its own currency. */
+export interface DraftItem {
+  kind: 'fuel' | 'service'
+  id: number
+  date: string | null
+  mileage_km: number | null
+  currency: Currency
+  liters: number | null
+  price_total: number | null
+  service_type: ServiceType | null
+  description: string | null
+  cost: number | null
+}
+
 export interface Dashboard {
   period: PeriodInfo
   available_years: number[]
@@ -185,6 +205,7 @@ export interface Dashboard {
   monthly_costs: MonthlyCostPoint[]
   monthly_granularity: 'month' | 'year'
   upcoming_reminders: Reminder[]
+  drafts: DraftItem[]
   activity: TimelineItem[]
 }
 

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import date
 
 from sqlmodel import Session, col, select
 
@@ -24,8 +25,9 @@ def _to_read(entry: ServiceEntry, attachments: list[Attachment]) -> ServiceEntry
         cost=entry.cost,
         currency=entry.currency,
         exchange_rate=entry.exchange_rate,
-        cost_czk=round(entry.cost * entry.exchange_rate, 2),
+        cost_czk=round(entry.cost * entry.exchange_rate, 2) if entry.cost is not None else None,
         notes=entry.notes,
+        is_draft=entry.is_draft,
         attachments=[AttachmentRead.model_validate(a, from_attributes=True) for a in attachments],
     )
 
@@ -35,28 +37,44 @@ def _attachments_for(db: Session, entry: ServiceEntry) -> list[Attachment]:
     return list(db.exec(select(Attachment).where(Attachment.service_entry_id == entry.id)).all())
 
 
-def _ensure_not_duplicate(db: Session, data: ServiceEntryCreate, exclude_id: int | None) -> None:
+def _ensure_not_duplicate(
+    db: Session,
+    data: ServiceEntryCreate,
+    entry_date: date,
+    mileage_km: float,
+    exclude_id: int | None,
+) -> None:
     query = select(ServiceEntry).where(
-        ServiceEntry.date == data.date,
-        ServiceEntry.mileage_km == data.mileage_km,
+        ServiceEntry.date == entry_date,
+        ServiceEntry.mileage_km == mileage_km,
         ServiceEntry.type == data.type,
+        col(ServiceEntry.is_draft).is_(False),
     )
     if exclude_id is not None:
         query = query.where(col(ServiceEntry.id) != exclude_id)
     wanted = normalize_text(data.description)
     if any(normalize_text(e.description) == wanted for e in db.exec(query).all()):
         raise DuplicateEntryError(
-            f"Stejný servisní záznam z {czech_date(data.date)} při {data.mileage_km:g} km"
-            " už existuje."
+            f"Stejný servisní záznam z {czech_date(entry_date)} při {mileage_km:g} km už existuje."
         )
+
+
+def _validate_complete(
+    db: Session, data: ServiceEntryCreate, *, allow_duplicate: bool, exclude_id: int | None
+) -> None:
+    """Duplicate and mileage checks for a non-draft save; a draft skips both."""
+    if data.is_draft:
+        return
+    assert data.date is not None and data.mileage_km is not None
+    if not allow_duplicate:
+        _ensure_not_duplicate(db, data, data.date, data.mileage_km, exclude_id)
+    validate_mileage_consistency(db, data.date, data.mileage_km, exclude_service_id=exclude_id)
 
 
 def create_entry(
     db: Session, data: ServiceEntryCreate, *, allow_duplicate: bool = False
 ) -> ServiceEntryRead:
-    if not allow_duplicate:
-        _ensure_not_duplicate(db, data, exclude_id=None)
-    validate_mileage_consistency(db, data.date, data.mileage_km)
+    _validate_complete(db, data, allow_duplicate=allow_duplicate, exclude_id=None)
     exchange_rate = get_rate(db, data.currency)
 
     entry = ServiceEntry(
@@ -68,6 +86,7 @@ def create_entry(
         currency=data.currency,
         exchange_rate=exchange_rate,
         notes=data.notes,
+        is_draft=data.is_draft,
     )
     db.add(entry)
     db.commit()
@@ -80,9 +99,7 @@ def update_entry(
     db: Session, entry: ServiceEntry, data: ServiceEntryCreate, *, allow_duplicate: bool = False
 ) -> ServiceEntryRead:
     assert entry.id is not None
-    if not allow_duplicate:
-        _ensure_not_duplicate(db, data, exclude_id=entry.id)
-    validate_mileage_consistency(db, data.date, data.mileage_km, exclude_service_id=entry.id)
+    _validate_complete(db, data, allow_duplicate=allow_duplicate, exclude_id=entry.id)
     exchange_rate = get_rate(db, data.currency)
 
     entry.date = data.date
@@ -93,6 +110,7 @@ def update_entry(
     entry.currency = data.currency
     entry.exchange_rate = exchange_rate
     entry.notes = data.notes
+    entry.is_draft = data.is_draft
 
     db.add(entry)
     db.commit()
@@ -115,11 +133,18 @@ def delete_entry(db: Session, entry: ServiceEntry) -> None:
 
 
 def list_entries(db: Session) -> list[ServiceEntryRead]:
-    entries = db.exec(
-        select(ServiceEntry).order_by(
-            col(ServiceEntry.mileage_km).desc(), col(ServiceEntry.id).desc()
-        )
+    # Drafts first (newest-created first), then complete entries by mileage.
+    drafts = db.exec(
+        select(ServiceEntry)
+        .where(col(ServiceEntry.is_draft).is_(True))
+        .order_by(col(ServiceEntry.created_at).desc(), col(ServiceEntry.id).desc())
     ).all()
+    complete = db.exec(
+        select(ServiceEntry)
+        .where(col(ServiceEntry.is_draft).is_(False))
+        .order_by(col(ServiceEntry.mileage_km).desc(), col(ServiceEntry.id).desc())
+    ).all()
+    entries = [*drafts, *complete]
     # One query for all attachments rather than one per entry.
     entry_ids = [entry.id for entry in entries if entry.id is not None]
     by_entry: dict[int, list[Attachment]] = defaultdict(list)

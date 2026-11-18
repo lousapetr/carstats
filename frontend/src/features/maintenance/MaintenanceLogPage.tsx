@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { maintenanceApi } from '../../api/maintenance'
 import { ActionMenu } from '../../components/ui/ActionMenu'
 import { Card } from '../../components/ui/Card'
@@ -10,29 +10,36 @@ import { formatDate } from '../../lib/dates'
 import { formatCzk, formatKm, formatMoney } from '../../lib/format'
 import { SERVICE_TYPE_LABELS } from '../../lib/serviceTypes'
 import { submitConfirmingDuplicate } from '../../lib/submitConfirmingDuplicate'
+import { useEditParam } from '../../lib/useEditParam'
 import type { ServiceEntry, ServiceEntryInput } from '../../types'
 import { AttachmentUploader } from './AttachmentUploader'
 import { MaintenanceForm } from './MaintenanceForm'
 
 function toFormValues(entry: ServiceEntry) {
   return {
-    date: entry.date,
-    mileage_km: entry.mileage_km,
+    date: entry.date ?? '',
+    mileage_km: entry.mileage_km ?? '',
     type: entry.type,
     description: entry.description ?? undefined,
-    cost: entry.cost,
+    cost: entry.cost ?? '',
     currency: entry.currency,
     notes: entry.notes ?? undefined,
   }
 }
 
+const DASH = '–'
+
 export function MaintenanceLogPage() {
   const queryClient = useQueryClient()
   const [editingEntry, setEditingEntry] = useState<ServiceEntry | null>(null)
+  const formRef = useRef<HTMLDivElement>(null)
 
-  const { data: entries, isPending, isError, refetch } = useQuery({
-    queryKey: ['service-entries'],
-    queryFn: maintenanceApi.list,
+  const entriesQuery = useQuery({ queryKey: ['service-entries'], queryFn: maintenanceApi.list })
+  const { data: entries, isPending, isError, refetch } = entriesQuery
+
+  useEditParam(entriesQuery, (entry) => {
+    setEditingEntry(entry)
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   })
 
   const invalidate = () => {
@@ -45,7 +52,11 @@ export function MaintenanceLogPage() {
     mutationFn: ({ data, force }: { data: ServiceEntryInput; force: boolean }) =>
       maintenanceApi.create(data, force),
     onSuccess: invalidate,
-    meta: { successMessage: 'Servisní záznam uložen.', confirmsDuplicate: true },
+    meta: {
+      successMessage: (entry) =>
+        (entry as ServiceEntry).is_draft ? 'Uloženo jako rozpracované.' : 'Servisní záznam uložen.',
+      confirmsDuplicate: true,
+    },
   })
 
   const updateMutation = useMutation({
@@ -63,7 +74,11 @@ export function MaintenanceLogPage() {
       invalidate()
       setEditingEntry(null)
     },
-    meta: { successMessage: 'Změny uloženy.', confirmsDuplicate: true },
+    meta: {
+      successMessage: (entry) =>
+        (entry as ServiceEntry).is_draft ? 'Uloženo jako rozpracované.' : 'Změny uloženy.',
+      confirmsDuplicate: true,
+    },
   })
 
   const deleteMutation = useMutation({
@@ -75,22 +90,30 @@ export function MaintenanceLogPage() {
     <div className="flex flex-col gap-4">
       <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Servis a údržba</h1>
 
-      <Card>
-        <MaintenanceForm
-          key={editingEntry?.id ?? 'new'}
-          defaultValues={editingEntry ? toFormValues(editingEntry) : undefined}
-          submitLabel={editingEntry ? 'Uložit změny' : undefined}
-          onCancel={editingEntry ? () => setEditingEntry(null) : undefined}
-          onSubmit={(values) =>
-            submitConfirmingDuplicate((force) =>
-              editingEntry
-                ? updateMutation.mutateAsync({ id: editingEntry.id, data: values, force })
-                : createMutation.mutateAsync({ data: values, force }),
-            )
-          }
-          isSubmitting={createMutation.isPending || updateMutation.isPending}
-        />
-      </Card>
+      <div ref={formRef}>
+        <Card>
+          <MaintenanceForm
+            key={editingEntry?.id ?? 'new'}
+            defaultValues={editingEntry ? toFormValues(editingEntry) : undefined}
+            submitLabel={
+              editingEntry ? (editingEntry.is_draft ? 'Dokončit' : 'Uložit změny') : undefined
+            }
+            onCancel={editingEntry ? () => setEditingEntry(null) : undefined}
+            onSubmit={(values, { draft }) =>
+              submitConfirmingDuplicate((force) =>
+                editingEntry
+                  ? updateMutation.mutateAsync({
+                      id: editingEntry.id,
+                      data: { ...values, is_draft: draft },
+                      force,
+                    })
+                  : createMutation.mutateAsync({ data: { ...values, is_draft: draft }, force }),
+              )
+            }
+            isSubmitting={createMutation.isPending || updateMutation.isPending}
+          />
+        </Card>
+      </div>
 
       {isPending && <LoadingState />}
       {isError && (
@@ -103,11 +126,19 @@ export function MaintenanceLogPage() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {SERVICE_TYPE_LABELS[entry.type]} · {formatDate(entry.date)}
+                  {SERVICE_TYPE_LABELS[entry.type]} · {entry.date ? formatDate(entry.date) : DASH}
+                  {entry.is_draft && (
+                    <span className="ml-2 rounded bg-sky-100 px-1.5 py-0.5 text-xs font-normal text-sky-800 dark:bg-sky-900 dark:text-sky-200">
+                      rozpracované
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {formatKm(entry.mileage_km)} · {formatMoney(entry.cost, entry.currency)}
-                  {entry.currency !== 'CZK' && ` (${formatCzk(entry.cost_czk)})`}
+                  {entry.mileage_km !== null ? formatKm(entry.mileage_km) : DASH} ·{' '}
+                  {entry.cost !== null ? formatMoney(entry.cost, entry.currency) : DASH}
+                  {entry.currency !== 'CZK' &&
+                    entry.cost_czk !== null &&
+                    ` (${formatCzk(entry.cost_czk)})`}
                 </div>
                 {entry.description && (
                   <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">

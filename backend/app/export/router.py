@@ -25,24 +25,45 @@ def _csv_response(rows: list[list[str]], header: list[str], filename: str) -> St
     )
 
 
+def _fuel_row(e: FuelEntry) -> list[str]:
+    # Only complete entries are exported; a missing field is a bug, not a row to skip.
+    assert e.date is not None and e.mileage_km is not None
+    assert e.liters is not None and e.price_per_liter is not None
+    total = e.liters * e.price_per_liter
+    return [
+        str(e.date),
+        f"{e.mileage_km:g}",
+        f"{e.liters:g}",
+        f"{e.price_per_liter:.2f}",
+        e.currency.value,
+        f"{total:.2f}",
+        f"{total * e.exchange_rate:.2f}",
+        e.notes or "",
+    ]
+
+
+def _service_row(e: ServiceEntry) -> list[str]:
+    assert e.date is not None and e.mileage_km is not None and e.cost is not None
+    return [
+        str(e.date),
+        f"{e.mileage_km:g}",
+        e.type.value,
+        e.description or "",
+        f"{e.cost:.2f}",
+        e.currency.value,
+        f"{e.cost * e.exchange_rate:.2f}",
+        e.notes or "",
+    ]
+
+
 @router.get("/fuel.csv")
 def export_fuel_csv(user: CurrentUser, db: DbSession) -> StreamingResponse:
     entries = db.exec(
-        select(FuelEntry).order_by(col(FuelEntry.mileage_km), col(FuelEntry.id))
+        select(FuelEntry)
+        .where(col(FuelEntry.is_draft).is_(False))
+        .order_by(col(FuelEntry.mileage_km), col(FuelEntry.id))
     ).all()
-    rows = [
-        [
-            str(e.date),
-            f"{e.mileage_km:g}",
-            f"{e.liters:g}",
-            f"{e.price_per_liter:.2f}",
-            e.currency.value,
-            f"{e.liters * e.price_per_liter:.2f}",
-            f"{e.liters * e.price_per_liter * e.exchange_rate:.2f}",
-            e.notes or "",
-        ]
-        for e in entries
-    ]
+    rows = [_fuel_row(e) for e in entries]
     header = [
         "Datum",
         "Najeto (km)",
@@ -59,20 +80,10 @@ def export_fuel_csv(user: CurrentUser, db: DbSession) -> StreamingResponse:
 @router.get("/maintenance.csv")
 def export_maintenance_csv(user: CurrentUser, db: DbSession) -> StreamingResponse:
     entries = db.exec(
-        select(ServiceEntry).order_by(col(ServiceEntry.mileage_km), col(ServiceEntry.id))
+        select(ServiceEntry)
+        .where(col(ServiceEntry.is_draft).is_(False))
+        .order_by(col(ServiceEntry.mileage_km), col(ServiceEntry.id))
     ).all()
-    rows = [
-        [
-            str(e.date),
-            f"{e.mileage_km:g}",
-            e.type.value,
-            e.description or "",
-            f"{e.cost:.2f}",
-            e.currency.value,
-            f"{e.cost * e.exchange_rate:.2f}",
-            e.notes or "",
-        ]
-        for e in entries
-    ]
+    rows = [_service_row(e) for e in entries]
     header = ["Datum", "Najeto (km)", "Typ", "Popis", "Cena", "Měna", "Cena (Kč)", "Poznámka"]
     return _csv_response(rows, header, "servis.csv")
